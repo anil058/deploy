@@ -56,7 +56,6 @@ class TranApiController extends Controller
         }     
     }
 
-
     public function AddMoney(Request $request){
         DB::beginTransaction();
         try{
