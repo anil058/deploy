@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\api;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
@@ -127,7 +127,7 @@ class TranApiController extends Controller
 
     }
 
-    
+
     public function GetPayments(Request $request){
         try{
             $recs = PaymentGateway::where('member_id', $request->user()->id)
