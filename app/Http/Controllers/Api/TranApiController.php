@@ -127,6 +127,7 @@ class TranApiController extends Controller
 
     }
 
+    
     public function GetPayments(Request $request){
         try{
             $recs = PaymentGateway::where('member_id', $request->user()->id)
