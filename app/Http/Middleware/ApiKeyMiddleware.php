@@ -32,7 +32,7 @@ class ApiKeyMiddleware
          else {
             return response()->json([
                 'status' => false,
-                'message' => 'Invalid Authorization Key',
+                'message' => 'Invalid Auth Key',
              ], 400);
          }
     }
