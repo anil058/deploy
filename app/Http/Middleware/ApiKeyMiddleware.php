@@ -20,7 +20,7 @@ class ApiKeyMiddleware
         if($request->headers->has('API_KEY') == false){
             return response()->json([
                 'status' => false,
-                'message' => 'Invalid Authorization Key',
+                'message' => 'No Authorization Key',
              ], 400);
         };
 
