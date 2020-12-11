@@ -17,7 +17,7 @@ class ApiKeyMiddleware
     public function handle(Request $request, Closure $next)
     {
         // Returns boolean
-        if($request->headers->has('API_KEY') == false){
+        if($request->headers->has('API-KEY') == false){
             return response()->json([
                 'status' => false,
                 'message' => 'No Authorization Key',
@@ -25,7 +25,7 @@ class ApiKeyMiddleware
         };
 
          // Returns header value with default as fallback
-         $val = $request->header('API_KEY', 'default_value');
+         $val = $request->header('API-KEY', 'default_value');
          if($val === 'eff41ef6-d430-4887-aa55-9fcf46c72c99'){
             return $next($request);
          }
