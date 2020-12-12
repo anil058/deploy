@@ -62,13 +62,13 @@ class ApiAuthController extends Controller
                 // return response(['errors' => $error], 422);
             }
             
-            // $tblOTP = Otp::Where('mobile_no', $request->mobile_no)->first();
             //Test Code *************************************
             $user = MemberUser::where('mobile_no', $request->mobile_no)->first();
             $response = ['status' => false, 'message' => 'Testing the loop'];
             return response($response, 200);
             //***************************************** */
 
+             $tblOTP = Otp::Where('mobile_no', $request->mobile_no)->first();
             if($tblOTP === null) {
                 $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
                 return response($response, 200);
