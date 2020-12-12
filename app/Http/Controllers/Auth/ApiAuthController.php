@@ -78,6 +78,11 @@ class ApiAuthController extends Controller
                 return response($response, 200);
             }
     
+            //Test Code *************************************
+            $response = ['status' => false, 'message' => 'Testing the loop'];
+            return response($response, 200);
+            //***************************************** */
+
             $user = MemberUser::where('mobile_no', $request->mobile_no)->first();
             if ($user) {
                 if (Hash::check($request->password, $user->password)) {
