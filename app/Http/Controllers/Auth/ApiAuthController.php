@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\Designation;
 use Exception;
+use GuzzleHttp\Psr7\Message;
 
 //USE App\Helpers\Utils;
 
@@ -46,62 +47,68 @@ class ApiAuthController extends Controller
     // }
 
     public function login (Request $request) {
-        // dd($request->mobile_no);
-        $validator = Validator::make($request->all(), [
-            'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-            'password' => 'required|string|min:6',
-            'otp' => 'required|digits:4',
-        ]);
-
-        if ($validator->fails())
-        {
-            $error = $validator->errors()->first();
-            $response = ['status' => false, 'message' => $error];
-            return response($response, 200);
-            // return response(['errors' => $error], 422);
-        }
-        
-        $tblOTP = Otp::Where('mobile_no', $request->mobile_no)->first();
-        if($tblOTP === null) {
-            $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
-            return response($response, 200);
-        }
-
-        if($tblOTP->otp != $request->otp){
-            $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
-            return response($response, 200);
-        }
-
-        if($tblOTP->expiry_at < Carbon::now()) {
-            $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
-            return response($response, 200);
-        }
-
-        $user = MemberUser::where('mobile_no', $request->mobile_no)->first();
-        if ($user) {
-            if (Hash::check($request->password, $user->password)) {
-                $tblMember = Member::where('member_id', $user->id)->first();
-                $tblDesignation = Designation::find($tblMember->designation_id);
-
-                $token=Str::random(80);
-                // $token = $user->createToken('Laravel Password Grant Client')->accessToken;
-                $user->api_token = $token;
-                $user->save();
-
-                $path = public_path("/member_images/") . $tblMember->image;
-                $imagedata = file_get_contents($path);
-                $base64 = base64_encode($imagedata);
-
-                $response = ['status' => true, 'message' => 'Successful login','token' => $token, 'name' => $tblMember->first_name, 'designation' => $tblDesignation->designation, 'image' => $base64];
+        try{
+            $validator = Validator::make($request->all(), [
+                'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                'password' => 'required|string|min:6',
+                'otp' => 'required|digits:4',
+            ]);
+    
+            if ($validator->fails())
+            {
+                $error = $validator->errors()->first();
+                $response = ['status' => false, 'message' => $error];
                 return response($response, 200);
+                // return response(['errors' => $error], 422);
+            }
+            
+            $tblOTP = Otp::Where('mobile_no', $request->mobile_no)->first();
+            if($tblOTP === null) {
+                $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
+                return response($response, 200);
+            }
+    
+            if($tblOTP->otp != $request->otp){
+                $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
+                return response($response, 200);
+            }
+    
+            if($tblOTP->expiry_at < Carbon::now()) {
+                $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
+                return response($response, 200);
+            }
+    
+            $user = MemberUser::where('mobile_no', $request->mobile_no)->first();
+            if ($user) {
+                if (Hash::check($request->password, $user->password)) {
+                    $tblMember = Member::where('member_id', $user->id)->first();
+                    $tblDesignation = Designation::find($tblMember->designation_id);
+    
+                    $token=Str::random(80);
+                    // $token = $user->createToken('Laravel Password Grant Client')->accessToken;
+                    $user->api_token = $token;
+                    $user->save();
+    
+                    $path = public_path("/member_images/") . $tblMember->image;
+                    $imagedata = file_get_contents($path);
+                    $base64 = base64_encode($imagedata);
+    
+                    $response = ['status' => true, 'message' => 'Successful login','token' => $token, 'name' => $tblMember->first_name, 'designation' => $tblDesignation->designation, 'image' => $base64];
+                    return response($response, 200);
+                } else {
+                    $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
+                    return response($response, 200);
+                }
             } else {
                 $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
                 return response($response, 200);
             }
-        } else {
-            $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
+        } catch(Exception $e) {
+            $response = ['status' => false, 'message' => $e->getMessage()];
             return response($response, 200);
         }
+
+
     }
 
     public function logout (Request $request) {
