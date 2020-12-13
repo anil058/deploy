@@ -236,8 +236,13 @@ class ApiAuthController extends Controller
                 $response = ['status' => false, 'message' => $errors];
                 return response($response, 200);
             }
-    
-            $tblOTP = Otp::where('mobile_no', $request->mobile_no)->first();
+            try{
+                $tblOTP = Otp::where('mobile_no', $request->mobile_no)->first();
+            } catch(\Exception $e) {
+                $response = ['status' => false, 'message' => $e->getMessage()];
+                return response($response, 200);
+            }
+
             if($tblOTP == null){
                 $response = ['status' => false, 'message' => 'Invalid Mobile or OTP'];
                 return response($response, 200);
