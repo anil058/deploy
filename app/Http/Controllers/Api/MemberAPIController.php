@@ -147,8 +147,11 @@ class MemberAPIController extends Controller
            
             generateOTP($request->mobile_no);
 
+            $orderid = "";
             $orderid = createRazorpayTempOrder($tempUser->id, $tblParam->int_value );
-
+            if(strlen($orderid) == 0){
+                throw new Exception("Could not generate order id");
+            }
             DB::commit();
             $response = ['status' => true, 
             'temp_id' => $tempUser->id, 

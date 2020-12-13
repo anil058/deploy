@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Models\Otp;
 use App\Models\PaymentGateway;
 use Razorpay\Api\Api;
+use Exception;
 
 function generateOTP($mobile_no) {
     try{
