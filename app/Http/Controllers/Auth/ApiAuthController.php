@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\MemberUser;
 use App\Models\Member;
-use App\Models\otp;
+use App\Models\Otp;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
