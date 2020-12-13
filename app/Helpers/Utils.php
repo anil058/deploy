@@ -177,7 +177,7 @@ function createRazorpayTempOrder($tmpid,$amount){
         $tblPaymentGateway->save();
         return $orderID;
     } catch(Exception $e){
-        return '';
+        return $e->getMessage();
     }
 }
 
