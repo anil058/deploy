@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api;
 use App\Http\Controllers\Api\MemberAPIController;
-use App\Http\Controllers\api\TranApiController;
+use App\Http\Controllers\Api\TranApiController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Auth\ApiAuthController;
 use App\Http\Controllers\Api\UserImageController;
