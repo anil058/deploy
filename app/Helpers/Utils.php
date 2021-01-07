@@ -27,8 +27,8 @@ function generateOTP($mobile_no) {
             $tblOTP->expiry_at = $expiryDate;
             $tblOTP->save();
         }
-        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
-        // $response1 = Http::get($url);
+        $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;
