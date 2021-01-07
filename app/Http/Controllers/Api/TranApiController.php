@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\MemberIncome;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -13,11 +14,12 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 
+
 class TranApiController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api')->except(['']);
+        $this->middleware('auth:api'); //->except(['GetUserMembers']);
     }
 
     public function GetTxnID(Request $request){
@@ -146,6 +148,86 @@ class TranApiController extends Controller
             $response = ['status' => false, 
             'message' => 'Could not Fetch Data',
             ];
+            return response($response, 200);
+        }
+    }
+
+    public function GetUserMembers(Request $request) {
+        try {
+
+            // $users = User::join('posts', 'posts.user_id', '=', 'users.id')
+            // ->where('users.status', 'active')
+            // ->where('posts.status','active')
+            // ->get(['users.*', 'posts.descrption']);
+            $data_array = array();
+
+            DB::enableQueryLog();
+            $sql =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
+                            ->where('member_maps.parent_id', $request->user()->id)
+                            ->where('member_maps.level_ctr',$request->level_ctr)
+                            ->get(['members.*']);
+
+            if($request->level_ctr == "All"){
+                $tblMembers =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
+                ->where('member_maps.member_id', $request->user()->id)
+                ->get(['members.*']);
+            }
+            else {
+                $tblMembers =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
+                ->where('member_maps.member_id', $request->user()->id)
+                ->where('member_maps.level_ctr',$request->level_ctr)
+                ->get(['members.*']);
+            }
+
+            // $tblMembers = Member::where('member_id', $request->user()->id);
+
+            foreach ($tblMembers as $member)
+            {
+                if(strlen($member->image) > 0){
+                    $path = public_path("member_images/") . $member->image;
+                    $imagedata = file_get_contents($path);
+                    $base64 = base64_encode($imagedata);
+                } else{
+                    $base64 = null;
+                }
+
+                $data_array[] = array(
+                    'member_id' => $member->member_id,
+                    'unique_id' => $member->unique_id,
+                    'member_name' => $member->first_name.' '.$member->last_name,
+                    'parent_name' => $member->parentMember->first_name . ' '.$member->parentMember->last_name,
+                    'parent_code' =>$member->parentMember->unique_id,
+                    'designation' => $member->designation->designation,
+                    'current_level' => $member->current_level,
+                    'joining_date' =>  Carbon::parse($member->joining_date)->format('d/m/Y'),
+                    'profile_pic' => $base64,
+                );
+            }
+            // add these lines to your code.
+            $response=array();
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["data"]=$data_array;
+            return response($response,200);
+        } catch(Exception $e){
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            return response($response, 200);
+        }
+    }
+
+    public function GetTransactions(Request $request){
+        try{
+            $records = DB::table('member_incomes')
+                            ->join('members', 'members.member_id', 'member_incomes.member_id')
+                            ->selectRaw("concat(first_name,' ',last_name) as name, unique_id, income_type,level_percent,ref_amount,commission,date_format(member_incomes.created_at,'%d/%m/%Y') as Dated")
+                            ->where('member_incomes.member_id', $request->user()->id)
+                            ->get();
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["data"]=$records;
+            return response($response,200);
+        } catch(Exception $ex){
+            $response = ['status' => false, 'message' => $e->getMessage()];
             return response($response, 200);
         }
     }

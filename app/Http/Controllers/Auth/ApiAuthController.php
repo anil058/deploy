@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClubMaster;
 use Illuminate\Http\Request;
 
 use App\Models\User;
@@ -17,6 +18,7 @@ use Carbon\Carbon;
 use App\Models\Designation;
 use Exception;
 use GuzzleHttp\Psr7\Message;
+use Illuminate\Support\Facades\Http;
 
 //USE App\Helpers\Utils;
 
@@ -95,7 +97,7 @@ class ApiAuthController extends Controller
             if ($user) {
                 if (Hash::check($request->password, $user->password)) {
                     $tblMember = Member::where('member_id', $user->id)->first();
-                    $tblDesignation = Designation::find($tblMember->designation_id);
+                    $tblDesignation = ClubMaster::find($tblMember->designation_id);
     
                     $token=Str::random(80);
                     // $token = $user->createToken('Laravel Password Grant Client')->accessToken;
@@ -213,6 +215,8 @@ class ApiAuthController extends Controller
 
             if(generateOTP($request->mobile_no) == true){
                 $response = ['status' => true, 'message' => 'OTP Generated'];
+                // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=9835718779&text=Test%20SMS&priority=ndnd&stype=normal";
+                // $response1 = Http::get($url);
                 return response($response, 200);
             }
             $response = ['status' => false, 'message' => 'Could not Generate OTP'];

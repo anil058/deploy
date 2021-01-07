@@ -11,11 +11,15 @@ class MemberIncome extends Model
         return $this->belongsTo(Member::class,'member_id','id');
     }
 
-    public function bonusType(){
-        return $this->belongsTo(BonusType::class,'bonus_type_id','id');
+    public function refMember(){
+        return $this->belongsTo(Member::class,'ref_member_id','id');
     }
 
-    public function bonusRule(){
-        return $this->belongsTo(BonusRule::class,'bonus_rule_id','id');
-    }
+    // public function bonusType(){
+    //     return $this->belongsTo(BonusType::class,'bonus_type_id','id');
+    // }
+
+    // public function bonusRule(){
+    //     return $this->belongsTo(BonusRule::class,'bonus_rule_id','id');
+    // }
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateBonusTypesTable extends Migration
+class CreateClubTurnOversTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,9 @@ class CreateBonusTypesTable extends Migration
      */
     public function up()
     {
-        Schema::create('bonus_types', function (Blueprint $table) {
+        Schema::create('club_turn_overs', function (Blueprint $table) {
             $table->id();
-            $table->string('bonus_type')->unique();
+            $table->integer('turnover');
             $table->timestamps();
         });
     }
@@ -27,6 +27,6 @@ class CreateBonusTypesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('bonus_types');
+        Schema::dropIfExists('club_turn_overs');
     }
 }

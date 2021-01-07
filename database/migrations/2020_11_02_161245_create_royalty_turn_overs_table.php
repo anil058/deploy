@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateReferalsTable extends Migration
+class CreateRoyaltyTurnOversTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,9 @@ class CreateReferalsTable extends Migration
      */
     public function up()
     {
-        Schema::create('referals', function (Blueprint $table) {
+        Schema::create('royalty_turn_overs', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('member_id')->index();
-            $table->string('referal_code')->index();
-            $table->integer('temp_id')->nullable()->index();
-            $table->dateTime('expiry_at')->index();
+            $table->integer('turnover');
             $table->timestamps();
         });
     }
@@ -30,6 +27,6 @@ class CreateReferalsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('referals');
+        Schema::dropIfExists('royalty_turn_overs');
     }
 }

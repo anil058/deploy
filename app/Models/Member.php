@@ -17,7 +17,11 @@ class Member extends Model
     ];
     
     public function designation(){
-        return $this->belongsTo(Designation::class,'designation_id','id');
+        return $this->belongsTo(ClubMaster::class,'designation_id','id');
+    }
+
+    public function parentMember(){
+        return $this->belongsTo(Self::class,'parent_id','member_id');
     }
 
     public function payoutRequests(){
@@ -46,6 +50,14 @@ class Member extends Model
 
     public function razorTrans(){
         return $this->hasMany(RazorTran::class,'member_id','id');
+    }
+
+    public function memberIncomeMembers(){
+        return $this->hasMany(MemberIncome::class,'member_id','id');
+    }
+
+    public function memberIncomeRefMembers(){
+        return $this->hasMany(MemberIncome::class,'ref_member_id','id');
     }
 
 }

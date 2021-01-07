@@ -16,11 +16,9 @@ class CreateLevelAchieversTable extends Migration
         Schema::create('level_achievers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('member_id')->references('id')->on('members')->onDelete('cascade');
-            $table->integer('LevelID')->index();
+            $table->integer('level_id')->index();
             $table->dateTime('tran_date')->nullable()->index();
             $table->dateTime('qualifying_date')->nullable()->index();
-            $table->dateTime('payment_date')->nullable()->index();
-            $table->string('reward')->nullable();
             $table->timestamps();
         });
     }

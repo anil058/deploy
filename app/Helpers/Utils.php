@@ -5,25 +5,30 @@ use App\Helpers\MiscFunctions;
 use App\Models\Member;
 use App\Models\Otp;
 use App\Models\PaymentGateway;
+use Illuminate\Support\Facades\Http;
 use Razorpay\Api\Api;
-use Exception;
+// use Exception;
 
 function generateOTP($mobile_no) {
     try{
-        $expiryDate = Carbon::now()->addMinute(1);
+        $expiryDate = Carbon::now()->addMinute(10);
+        $otp = newOTP();
+        $msg = urlencode("OTP is ".$otp." for Mansha Real Rupees");
         $tblOTP = Otp::where('mobile_no', $mobile_no)->first();
         if($tblOTP === null){
             $tblOTP = new Otp();
             $tblOTP->mobile_no =  $mobile_no;
-            $tblOTP->otp =  newOTP();
+            $tblOTP->otp =  $otp;
             $tblOTP->expiry_at = $expiryDate;
             $tblOTP->save();
         } else {
             $tblOTP->mobile_no =  $mobile_no;
-            $tblOTP->otp =  newOTP();
+            $tblOTP->otp =  $otp;
             $tblOTP->expiry_at = $expiryDate;
             $tblOTP->save();
         }
+        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        // $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;
@@ -219,7 +224,8 @@ function getUniqueTicketNo(){
 
 function getUniqueReferalCode(){
     $tmpid = (time() % 86400);
-    $ticketnumber = 'R' . date('YdMhms'). str_pad(($tmpid + 1), 3, '0', STR_PAD_LEFT);
+    // $ticketnumber = 'R' . date('YdMhms'). str_pad(($tmpid + 1), 3, '0', STR_PAD_LEFT);
+    $ticketnumber = 'R'.date('sm').str_pad(($tmpid + 1), 3, '0', STR_PAD_LEFT);
     return $ticketnumber;
 }
 

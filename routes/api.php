@@ -58,6 +58,8 @@ Route::post('/forgotpassword', [ApiAuthController::class,'forgotPassword']);
 Route::post('/generateotp', [ApiAuthController::class,'generateOTP'])->middleware('api.key');
 Route::post('/validateotp', [ApiAuthController::class,'validateOTP'])->middleware('api.key');
 
+Route::post('/usermembers', [TranApiController::class,'GetUserMembers'])->middleware('api.key');
+Route::post('/memberincomes', [TranApiController::class,'GetTransactions'])->middleware('api.key');
 
 // Route::post('/updatepayment', [ApiAuthController::class,'updatePaymentStatus'])->middleware('api.key');
 

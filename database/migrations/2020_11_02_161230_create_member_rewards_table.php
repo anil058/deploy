@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateCommissionsTable extends Migration
+class CreateMemberRewardsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,13 +13,15 @@ class CreateCommissionsTable extends Migration
      */
     public function up()
     {
-        Schema::create('commissions', function (Blueprint $table) {
+        Schema::create('member_rewards', function (Blueprint $table) {
             $table->id();
             $table->foreignId('member_id')->references('id')->on('members')->onDelete('cascade');
-            $table->foreignId('beneficiary_id')->references('id')->on('members')->onDelete('cascade');
-            $table->integer('beneficiary_level')->index();
-            $table->double('percent')->index();
-            $table->double('amount');
+            $table->integer('level_id')->index();
+            $table->integer('member_count')->index();
+            $table->dateTime('tran_date')->nullable()->index();
+            $table->string('reward_name')->nullable();
+            $table->dateTime('qualifying_date')->nullable()->index();
+            $table->dateTime('payment_date')->nullable()->index();
             $table->timestamps();
         });
     }
@@ -31,6 +33,6 @@ class CreateCommissionsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('commissions');
+        Schema::dropIfExists('member_rewards');
     }
 }
