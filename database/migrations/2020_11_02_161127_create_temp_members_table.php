@@ -22,7 +22,10 @@ class CreateTempMembersTable extends Migration
             $table->string('email')->unique();
             $table->string('address')->index();
             $table->string('mobile_no');
-            $table->integer('member_fee');
+            $table->decimal('membership_fee');
+            $table->decimal('tax_percent');
+            $table->decimal('tax_amount');
+            $table->decimal('net_amount');
             $table->string('password');
             $table->boolean('otp_verified')->default(0);
             $table->boolean('closed')->default(0);

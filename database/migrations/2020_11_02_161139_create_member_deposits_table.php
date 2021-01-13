@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateLevelAchieversTable extends Migration
+class CreateMemberDepositsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,15 @@ class CreateLevelAchieversTable extends Migration
      */
     public function up()
     {
-        Schema::create('level_achievers', function (Blueprint $table) {
+        Schema::create('member_deposits', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('member_id')->index();
-            $table->integer('level_id')->index();
-            $table->dateTime('tran_date')->nullable()->index();
-            $table->dateTime('qualifying_date')->nullable()->index();
+            $table->bigInteger('gateway_id')->index();
+            $table->decimal('amount');
+            $table->decimal('tax_percent');
+            $table->decimal('tax_amount');
+            $table->decimal('net_amount');
+            $table->string('deposit_type')->index(); //FEE/RECHARGE
             $table->timestamps();
         });
     }
@@ -30,6 +33,6 @@ class CreateLevelAchieversTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('level_achievers');
+        Schema::dropIfExists('member_deposits');
     }
 }

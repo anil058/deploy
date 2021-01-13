@@ -27,8 +27,8 @@ function generateOTP($mobile_no) {
             $tblOTP->expiry_at = $expiryDate;
             $tblOTP->save();
         }
-        $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
-        $response1 = Http::get($url);
+        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        // $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;
@@ -163,7 +163,7 @@ function newOTP() {
 
 
 
-function createRazorpayTempOrder($tmpid,$amount){
+function createRazorpayTempOrder($tmpid,$amount,$taxPercent){
     try{
         $api_key = 'rzp_test_H4Hl4CW33loNwZ';
         $api_secret ='Rq9k7LaMa6FHOgz4ujcryTBz';
@@ -173,9 +173,15 @@ function createRazorpayTempOrder($tmpid,$amount){
         $order  = $api->order->create(array('receipt' => $receiptID, 'amount' => $amount, 'currency' => 'INR')); // Creates order
         $orderID = $order['id'];     
 
+        $taxAmount = round($amount * $taxPercent * 0.01,2);
+        $netAmount = $amount + $taxAmount;
+
         $tblPaymentGateway = new PaymentGateway();
         $tblPaymentGateway->temp_id = $tmpid;
         $tblPaymentGateway->amount = $amount;
+        $tblPaymentGateway->tax_percent = $taxPercent;
+        $tblPaymentGateway->tax_amount = $taxAmount;
+        $tblPaymentGateway->net_amount =  $netAmount;
         $tblPaymentGateway->order_id = $orderID;
         $tblPaymentGateway->receipt_id = $receiptID;
         $tblPaymentGateway->fake = true;

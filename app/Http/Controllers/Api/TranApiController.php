@@ -19,7 +19,7 @@ class TranApiController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api'); //->except(['GetUserMembers']);
+        $this->middleware('auth:api')->except(['MemberRewards']);
     }
 
     public function GetTxnID(Request $request){
@@ -128,7 +128,6 @@ class TranApiController extends Controller
 
     }
 
-
     public function GetPayments(Request $request){
         try{
             $recs = PaymentGateway::where('member_id', $request->user()->id)
@@ -161,22 +160,43 @@ class TranApiController extends Controller
             // ->get(['users.*', 'posts.descrption']);
             $data_array = array();
 
-            DB::enableQueryLog();
-            $sql =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
-                            ->where('member_maps.parent_id', $request->user()->id)
-                            ->where('member_maps.level_ctr',$request->level_ctr)
-                            ->get(['members.*']);
+            // $sql =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
+            //                 ->where('member_maps.parent_id', $request->user()->id)
+            //                 ->where('member_maps.level_ctr',$request->level_ctr)
+            //                 ->get(['members.*']);
 
             if($request->level_ctr == "All"){
-                $tblMembers =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
-                ->where('member_maps.member_id', $request->user()->id)
-                ->get(['members.*']);
+                DB::enableQueryLog();
+
+                $tblMembers = DB::select("SELECT m.member_id,d.designation,m.unique_id,m.image,
+                    CONCAT(m.first_name,' ',m.last_name) AS member_name,
+                    CONCAT(m1.first_name,' ',m1.last_name) AS introducer,m1.unique_id AS parent_code,
+                    DATE_FORMAT(m.joining_date,'%d/%m/%Y') AS joining_date,(p.level_ctr + 1) AS downline
+                    FROM members m
+                    LEFT JOIN members m1 ON m.parent_id = m1.member_id
+                    INNER JOIN club_masters d ON m.designation_id=d.id
+                    INNER JOIN member_maps p ON m.member_id=p.member_id
+                    WHERE p.parent_id = ".$request->user()->id);
+
+                // $tblMembers =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
+                // ->where('member_maps.parent_id', $request->user()->id)
+                // ->get(['members.*']);
             }
             else {
-                $tblMembers =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
-                ->where('member_maps.member_id', $request->user()->id)
-                ->where('member_maps.level_ctr',$request->level_ctr)
-                ->get(['members.*']);
+                // $tblMembers =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
+                // ->where('member_maps.member_id', $request->user()->id)
+                // ->where('member_maps.level_ctr',$request->level_ctr)
+                // ->get(['members.*']);
+
+                $tblMembers = DB::select("SELECT m.member_id,d.designation,m.unique_id,m.image,
+                    CONCAT(m.first_name,' ',m.last_name) AS member_name,
+                    CONCAT(m1.first_name,' ',m1.last_name) AS introducer,m1.unique_id AS parent_code,
+                    DATE_FORMAT(m.joining_date,'%d/%m/%Y') AS joining_date,(p.level_ctr + 1) AS downline
+                    FROM members m
+                    LEFT JOIN members m1 ON m.parent_id = m1.member_id
+                    INNER JOIN club_masters d ON m.designation_id=d.id
+                    INNER JOIN member_maps p ON m.member_id=p.member_id
+                    WHERE p.parent_id = ".$request->user()->id." AND p.level_ctr+1 =".$request->level_ctr);
             }
 
             // $tblMembers = Member::where('member_id', $request->user()->id);
@@ -194,12 +214,12 @@ class TranApiController extends Controller
                 $data_array[] = array(
                     'member_id' => $member->member_id,
                     'unique_id' => $member->unique_id,
-                    'member_name' => $member->first_name.' '.$member->last_name,
-                    'parent_name' => $member->parentMember->first_name . ' '.$member->parentMember->last_name,
-                    'parent_code' =>$member->parentMember->unique_id,
-                    'designation' => $member->designation->designation,
-                    'current_level' => $member->current_level,
-                    'joining_date' =>  Carbon::parse($member->joining_date)->format('d/m/Y'),
+                    'member_name' => $member->member_name,
+                    'parent_name' => $member->introducer,
+                    'parent_code' =>$member->parent_code,
+                    'designation' => $member->designation,
+                    'current_level' => $member->downline,
+                    'joining_date' =>  $member->joining_date, //Carbon::parse($member->joining_date)->format('d/m/Y'),
                     'profile_pic' => $base64,
                 );
             }
@@ -217,11 +237,21 @@ class TranApiController extends Controller
 
     public function GetTransactions(Request $request){
         try{
-            $records = DB::table('member_incomes')
-                            ->join('members', 'members.member_id', 'member_incomes.member_id')
-                            ->selectRaw("concat(first_name,' ',last_name) as name, unique_id, income_type,level_percent,ref_amount,commission,date_format(member_incomes.created_at,'%d/%m/%Y') as Dated")
-                            ->where('member_incomes.member_id', $request->user()->id)
-                            ->get();
+            // $records = DB::table('member_incomes')
+            //                 ->join('members', 'members.member_id', 'member_incomes.member_id')
+            //                 ->selectRaw("concat(first_name,' ',last_name) as name, unique_id, income_type,level_percent,ref_amount,commission,date_format(member_incomes.created_at,'%d/%m/%Y') as Dated")
+            //                 ->where('member_incomes.member_id', $request->user()->id)
+            //                 ->get();
+            $sql = "SELECT i.commission,m.unique_id AS ref_id,
+                    concat(m.first_name,' ',m.last_name) AS ref_name,
+                    i.level_percent,
+                    i.ref_amount,i.income_type,
+                    DATE_FORMAT(i.created_at,'%d/%m/%Y') AS tran_date
+                FROM member_incomes i
+                LEFT JOIN members m ON i.ref_member_id=m.member_id
+                WHERE i.member_id = ". $request->user()->id;
+
+            $records = DB::select($sql);
             $response['status'] = true;
             $response['message'] = 'Success';
             $response["data"]=$records;
@@ -232,4 +262,86 @@ class TranApiController extends Controller
         }
     }
 
+    public function Dashboard(Request $request)
+    {
+        try{
+
+            // $sql = "SELECT m.referal_code,
+            //     m.unique_id,
+            //     date_format(MAX(m.joining_date),'%d/%m/%Y') AS last_joining_date,
+            //     count(m.member_id) AS TotalTeamSize,
+            //     SUM(if((m.joining_date between date_sub(now(),INTERVAL 1 WEEK) and now()),1,0)) AS week_members
+            // FROM members m
+            // INNER JOIN member_maps p ON m.member_id=p.parent_id
+            // WHERE p.parent_id=".$request->user()->id." GROUP BY m.referal_code,m.unique_id";
+
+            $sql = "SELECT m.referal_code,
+                m.unique_id,
+                date_format(MAX(m.joining_date),'%d/%m/%Y') AS last_joining_date,
+                count(m.member_id) AS TotalTeamSize,
+                SUM(if((m.joining_date between date_sub(now(),INTERVAL 1 WEEK) and now()),1,0)) AS week_members
+            FROM members m
+            INNER JOIN member_maps p ON m.member_id=p.parent_id
+            WHERE p.parent_id=".$request->user()->id." GROUP BY m.referal_code,m.unique_id";
+
+            $records = DB::select($sql);
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["referal_code"]=$records[0]->referal_code;
+            $response["unique_id"]=$records[0]->unique_id;
+            $response["last_joining_date"]=$records[0]->last_joining_date;
+            $response["TotalTeamSize"]=$records[0]->TotalTeamSize;
+            $response["week_members"]=$records[0]->week_members;
+            $response["last_payment_transfer"]=0;
+            $response["total_payment_transfer"]=0;
+
+            return response($response,200);
+        } catch(Exception $e){
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            return response($response, 200);
+        }
+
+    }
+
+    public function MemberRewards(Request $request){
+        try{
+            // $str = "SELECT m.level,
+            //         m.required_members,
+            //         (m.required_members - ifnull(a.cnt,0)) AS required,
+            //         m.reward,
+            //         if(r.tran_date IS NULL,'',DATE_FORMAT(r.tran_date,'%d/%m/%Y')) AS qualifying_date,
+            //         if(r.payment_date IS NULL,'',DATE_FORMAT(r.payment_date,'%d/%m/%Y')) AS payment_date
+            //     FROM level_masters m
+            //     LEFT JOIN member_rewards r ON m.`level` = r.level_id AND r.member_id = ".$request->user()->id."
+            //     LEFT JOIN (
+            //         SELECT level_ctr, COUNT(parent_id) AS cnt
+            //         FROM member_maps
+            //         WHERE parent_id=".$request->user()->id."
+            //         GROUP BY level_ctr) AS a ON m.`level` = a.level_ctr";
+
+            $sql = "SELECT m.level,
+                    m.required_members as target,
+                    (m.required_members - ifnull(a.cnt,0)) AS required,
+                    m.reward,
+                    if(r.tran_date IS NULL,'',DATE_FORMAT(r.tran_date,'%d/%m/%Y')) AS qualifying_date,
+                    if(r.payment_date IS NULL,'',DATE_FORMAT(r.payment_date,'%d/%m/%Y')) AS payment_date
+                FROM level_masters m
+                LEFT JOIN member_rewards r ON m.`level` = r.level_id AND r.member_id = 1
+                LEFT JOIN (
+                    SELECT level_ctr, COUNT(parent_id) AS cnt
+                    FROM member_maps
+                    WHERE parent_id=1
+                    GROUP BY level_ctr) AS a ON m.`level` = a.level_ctr";
+
+                    
+            $records = DB::select($sql);
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["data"]=$records;
+            return response($response,200);
+        } catch(Exception $e){
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            return response($response, 200);
+        }
+    }
 }

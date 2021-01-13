@@ -18,6 +18,9 @@ class CreatePaymentGatewaysTable extends Migration
             $table->bigInteger('member_id')->unsigned()->nullable()->index();
             $table->bigInteger('temp_id')->unsigned()->nullable()->index();
             $table->double('amount');
+            $table->double('tax_percent');
+            $table->double('tax_amount');
+            $table->double('net_amount');
             $table->string('payment_id', 80)->unique()->nullable()->default(null);
             $table->string('order_id', 80)->unique();
             $table->string('receipt_id', 80)->unique();

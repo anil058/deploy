@@ -15,7 +15,7 @@ class CreateMemberRewardsTable extends Migration
     {
         Schema::create('member_rewards', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('member_id')->references('id')->on('members')->onDelete('cascade');
+            $table->bigInteger('member_id')->index();
             $table->integer('level_id')->index();
             $table->integer('member_count')->index();
             $table->dateTime('tran_date')->nullable()->index();

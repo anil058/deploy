@@ -34,6 +34,9 @@ class CreateMembersTable extends Migration
             $table->dateTime('joining_date')->nullable()->index();
             $table->string('pin')->nullable();
             $table->text('image')->nullable();
+            $table->string('bank_name')->nullable();
+            $table->string('ifsc_code')->nullable();
+            $table->string('account_number')->nullable();
             $table->timestamps();
             // $table->enum('user_status', array('Active', 'Deactive'))->default('Active');
         });

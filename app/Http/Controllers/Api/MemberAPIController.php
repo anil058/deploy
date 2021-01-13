@@ -14,6 +14,7 @@ use App\Models\ClubMaster;
 use App\Models\LevelAchiever;
 use App\Models\LevelMaster;
 use App\Models\Member;
+use App\Models\MemberDeposit;
 use App\Models\MemberIncome;
 use App\Models\MemberUser;
 use App\Models\MemberMap;
@@ -29,6 +30,11 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * KNOWLEDGE
+ * DB::enableQueryLog();
+ * dd(DB::getQueryLog()); 
+ */
 /**
  * LEARNINGS 
  * =============================================================
@@ -46,12 +52,10 @@ class MemberAPIController extends Controller
     // private $arrayRefTable = array();
 
     //Paremters
-    private $BRONZ_REQ_NUM;
-    private $SILVER_REQ_NUM;
-    private $GOLD_REQ_NUM;
-    private $DIAMOND_REQ_NUM;
-    private $ROYALTY_REQ_NUM;
     private $CASHBACK_REWARD;
+    private $TAX_PERCENT;
+    private $MEMBER_COUNTER;
+    private $MEMBERSHIP_FEE;
 
     //Memory Tables
     private $arrayParents = array();
@@ -61,6 +65,7 @@ class MemberAPIController extends Controller
 
     //Extract and Fill arrayParents for current member
     private function populateParents($member_id){
+        DB::enableQueryLog();
         $tblMembers = MemberMap::join('members', 'member_maps.member_id', '=', 'members.member_id')
         ->where('member_maps.member_id', $member_id)
         ->where('member_maps.level_ctr', '<', 12)
@@ -108,20 +113,11 @@ class MemberAPIController extends Controller
         $tblParamTable = Param::all();
         foreach ($tblParamTable as $refTable){
             switch($refTable->param){
-                case "BRONZ":
-                    $this->BRONZ_REQ_NUM = $refTable->int_value;
+                case "MEMBERSHIP_FEE":
+                    $this->MEMBERSHIP_FEE = $refTable->int_value;
                     break;
-                case "SILVER":
-                    $this->SILVER_REQ_NUM = $refTable->int_value;
-                    break;
-                case "GOLD":
-                    $this->GOLD_REQ_NUM = $refTable->int_value;
-                    break;
-                case "DIAMOND":
-                    $this->DIAMOND_REQ_NUM = $refTable->int_value;
-                    break;
-                case "ROYALTY":
-                    $this->ROYALTY_REQ_NUM = $refTable->int_value;
+                case "TAX_PERCENT":
+                    $this->TAX_PERCENT = $refTable->string_value;
                     break;
                 case "CASHBACK_REWARD":
                     $this->CASHBACK_REWARD = $refTable->int_value;
@@ -139,8 +135,8 @@ class MemberAPIController extends Controller
             {
                 return $m->level_percent;
             }
-            return 0;
         }
+        return 0;
     }
 
     //Get Level Reward
@@ -204,7 +200,7 @@ class MemberAPIController extends Controller
         $prefix = $param->string_value;
         $param->int_value = $intValue + 1;
         $param->save();
-        $memberCode = $prefix . Str::padLeft($intValue,5,'0');
+        $memberCode = $prefix . Str::padLeft($intValue,9,'0');
         return $memberCode;
     } 
 
@@ -251,7 +247,7 @@ class MemberAPIController extends Controller
             // $txn_id = $this->newTxnID();
             // $txn_id = createRazorpayTempOrder()
             // dd($txn_id);
-
+            $this->populateParams();
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
                 $response = ['status' => false, 'message' => $errors];
@@ -279,7 +275,7 @@ class MemberAPIController extends Controller
                 return response($response, 200);
             }
 
-            $tblParam = Param::where('param', 'MEMBERSHIP_FEE')->first();
+            // $tblParam = Param::where('param', 'MEMBERSHIP_FEE')->first();
 
             //Check if mobile no exists in TempMember if yes replace the record, else add
             $tempUser = TempMember::where('mobile_no', $request->mobile_no)->first();
@@ -294,7 +290,17 @@ class MemberAPIController extends Controller
             $tempUser->password = Hash::make($request->password);
             $tempUser->address = $request->address;
             $tempUser->parent_id = $tblReferal->member_id;
-            $tempUser->member_fee = $tblParam->int_value;
+
+            $membershipFee = $this->MEMBERSHIP_FEE;
+            $taxPercent = $this->TAX_PERCENT;
+            $taxAmount = round($this->MEMBERSHIP_FEE * $this->TAX_PERCENT * 0.01,2);
+            $netAmount = $this->MEMBERSHIP_FEE + $taxAmount;
+            
+            $tempUser->membership_fee = $membershipFee;
+            $tempUser->tax_percent = $taxPercent;
+            $tempUser->tax_amount = $taxAmount;
+            $tempUser->net_amount = $netAmount;
+
             $tempUser->expiry_at = Carbon::now()->addDays(3);
             $tempUser->ip = $request->ip();
             $tempUser->save();
@@ -302,7 +308,7 @@ class MemberAPIController extends Controller
             generateOTP($request->mobile_no);
 
             $orderid = "";
-            $orderid = createRazorpayTempOrder($tempUser->id, $tblParam->int_value );
+            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee, $taxPercent);
             if(strlen($orderid) == 0){
                 throw new Exception("Could not generate order id");
             }
@@ -311,7 +317,7 @@ class MemberAPIController extends Controller
             'temp_id' => $tempUser->id, 
             'txn_id' => $orderid, 
             'message' => 'Successfully Created Temporary User',
-            'fee_amount' => $tblParam->int_value,
+            'fee_amount' => $netAmount * 100
             ];
             return response($response, 200);
         } catch(Exception $e) {
@@ -319,10 +325,8 @@ class MemberAPIController extends Controller
             DB::rollBack();
             return response($response, 200);
         }
-
-
     }
-
+    
     public function updateMemberInfo(Request $request) {
         try{
             //Validate request
@@ -418,76 +422,77 @@ class MemberAPIController extends Controller
      *      11. NotifyMembers
      */
     public function updatePaymentStatus(Request $request){
+         //Validate Input
+         $validator = Validator::make($request->all(), [
+            'txn_id' => 'required|string|max:50',
+            'temp_id' => 'required|integer',
+            'payment_id' => 'required|string|max:50',
+            'status' => [
+                'required',
+                Rule::in(['SUCCESS', 'FAILURE', 'PENDING']),
+            ],
+        ]);
+
+        //General request validation
+        if ($validator->fails()) {
+            $errors = $validator->errors()->first();
+            return response()->json(['status' => false, 'message' => $errors]);
+        }
+
+        //Validate against TempMembers
+        $tblTempMember = TempMember::where('id',$request->temp_id)->first();
+        $request->password = $tblTempMember->password;
+        $request->name = $tblTempMember->first_name;
+        $request->member_fee = $tblTempMember->membership_fee;
+
+        //If Temp ID doesnot exist
+        if($tblTempMember === null){
+            $response = ['status' => false, 'message' => 'Invalid Temp ID'];
+            return response($response, 200);
+        }
+
+        //Validate against PaymentGateway table
+        $tblPaymentGateway = PaymentGateway::where('temp_id', $request->temp_id)
+                            ->where('order_id', $request->txn_id)->first();
+
+        if($tblPaymentGateway == null){
+            $response = ['status' => false, 'message' => 'Invalid txnid'];
+            return response($response, 200);
+        }
+
+        $request->payment_int_id = $tblPaymentGateway->id;
+
+        switch($request->status){
+            case 'SUCCESS':
+                $tblPaymentGateway->payment_id = $request->payment_id;
+                $tblPaymentGateway->member_id = $request->member_id;
+                $tblPaymentGateway->paid = true;
+                $tblPaymentGateway->failure = false;
+                $tblPaymentGateway->pending = false;
+                $tblPaymentGateway->fake = false;
+                $tblPaymentGateway->closed =false;
+                $tblPaymentGateway->save();
+                break;
+            case 'FAILURE':
+                // $tblPaymentGateway->payment_id = $request->payment_id;
+                $tblPaymentGateway->paid = false;
+                $tblPaymentGateway->failure = true;
+                $tblPaymentGateway->pending = false;
+                $tblPaymentGateway->fake = false;
+                $tblPaymentGateway->closed =true;
+                $tblPaymentGateway->save();
+            default:
+                // $tblPaymentGateway->payment_id = $request->payment_id;
+                $tblPaymentGateway->paid = false;
+                $tblPaymentGateway->failure = false;
+                $tblPaymentGateway->pending = true;
+                $tblPaymentGateway->fake = false;
+                $tblPaymentGateway->closed =false;
+                $tblPaymentGateway->save();
+        }
+
         DB::beginTransaction();
         try{
-            //Validate Input
-            $validator = Validator::make($request->all(), [
-                'txn_id' => 'required|string|max:50',
-                'temp_id' => 'required|integer',
-                'payment_id' => 'required|string|max:50',
-                'status' => [
-                    'required',
-                    Rule::in(['SUCCESS', 'FAILURE', 'PENDING']),
-                ],
-            ]);
-
-            //General request validation
-            if ($validator->fails()) {
-                $errors = $validator->errors()->first();
-                return response()->json(['status' => false, 'message' => $errors]);
-            }
-    
-            //Validate against TempMembers
-            $tblTempMember = TempMember::where('id',$request->temp_id)->first();
-            $request->password = $tblTempMember->password;
-            $request->name = $tblTempMember->first_name;
-            $request->member_fee = $tblTempMember->member_fee;
-
-            //If Temp ID doesnot exist
-            if($tblTempMember === null){
-                $response = ['status' => false, 'message' => 'Invalid Temp ID'];
-                return response($response, 200);
-            }
-
-            //Validate against PaymentGateway table
-            $tblPaymentGateway = PaymentGateway::where('temp_id', $request->temp_id)
-                                ->where('order_id', $request->txn_id)->first();
-
-            if($tblPaymentGateway == null){
-                $response = ['status' => false, 'message' => 'Invalid txnid'];
-                return response($response, 200);
-            }
-
-            switch($request->status){
-                case 'SUCCESS':
-                    $tblPaymentGateway->payment_id = $request->payment_id;
-                    $tblPaymentGateway->member_id = $request->member_id;
-                    $tblPaymentGateway->paid = true;
-                    $tblPaymentGateway->failure = false;
-                    $tblPaymentGateway->pending = false;
-                    $tblPaymentGateway->fake = false;
-                    $tblPaymentGateway->closed =true;
-                    $tblPaymentGateway->save();
-                    break;
-                case 'FAILURE':
-                    // $tblPaymentGateway->payment_id = $request->payment_id;
-                    $tblPaymentGateway->paid = false;
-                    $tblPaymentGateway->failure = true;
-                    $tblPaymentGateway->pending = false;
-                    $tblPaymentGateway->fake = false;
-                    $tblPaymentGateway->closed =true;
-                    $tblPaymentGateway->save();
-                    break;
-                default:
-                    // $tblPaymentGateway->payment_id = $request->payment_id;
-                    $tblPaymentGateway->paid = false;
-                    $tblPaymentGateway->failure = false;
-                    $tblPaymentGateway->pending = true;
-                    $tblPaymentGateway->fake = false;
-                    $tblPaymentGateway->closed =false;
-                    $tblPaymentGateway->save();
-                    break;
-            }
             //Inject default values
             //$request->memberID = $request->user()->id;
             $request->jumboErrorStatus = false;
@@ -496,12 +501,23 @@ class MemberAPIController extends Controller
             $request->mobile_no = $tblTempMember->mobile_no;
             $request->parent_id = $tblTempMember->parent_id;
 
+            $this->populateParams();
             $this->createMemberUser($request);
             $this->addMember($request);
+            $this->populateParents($request->parent_id);
             $this->mapMember($request);
 
-            $this->populateParams();
-            $this->populateParents($request->member_id);
+            //Save Fee in Deposit
+            $tblMemberDeposits = new MemberDeposit();
+            $tblMemberDeposits->member_id = $request->member_id;
+            $tblMemberDeposits->gateway_id = $tblPaymentGateway->id;
+            $tblMemberDeposits->amount = $tblPaymentGateway->amount;
+            $tblMemberDeposits->tax_percent = $tblPaymentGateway->tax_percent;
+            $tblMemberDeposits->tax_amount = $tblPaymentGateway->tax_amount;
+            $tblMemberDeposits->net_amount = $tblPaymentGateway->net_amount;
+            $tblMemberDeposits->deposit_type = 'MEMBERSHIP_FEE';
+            $tblMemberDeposits->save();
+
             $this->populateLevelMaster();
             $this->populateClubMaster();
             $this->populateLevelWiseMemberCount($request->member_id);
@@ -513,6 +529,10 @@ class MemberAPIController extends Controller
             $this->addCashbackReward($request);
             //$this->updateLevelAchievers();
 
+            //When confirm, updated closed flag
+            $tblPaymentGateway->member_id = $request->member_id;
+            $tblPaymentGateway->closed =true;
+            $tblPaymentGateway->save();
             DB::commit();
             $response = ['status' => true, 'message' => 'Member Created Successfully'];
             return response($response, 200);
@@ -563,6 +583,7 @@ class MemberAPIController extends Controller
         $tblMember -> email = $tblTempMember->email;
         $tblMember -> referal_code = getUniqueReferalCode();
         $tblMember -> mobile_no = $request->mobile_no;
+        $tblMember -> recharge_points = $this->CASHBACK_REWARD + $request->member_fee;
         $tblMember -> image = 'dummy.jpg';
         $tblMember -> designation_id = 1;
         $tblMember -> current_level = 0;
@@ -618,25 +639,27 @@ class MemberAPIController extends Controller
         //Level Income Calculation
         //======================================
         //Update Member Income if there is a candidate
-        foreach ($this->arrayParents as $memberMap){
+        $tblMemberMap = MemberMap::where('member_id',$request->member_id)->get();
+        foreach ( $tblMemberMap as $memberMap){
+            $level_ctr = $memberMap->level_ctr + 1;
             //Calculate Level Commission
-            if($memberMap->member_id != 0){
+            if($level_ctr < 13){
                 //Update Commission
-                $l_levelPercent = $this->getCommissionPercent($memberMap->current_level);
+                $l_levelPercent = $this->getCommissionPercent($level_ctr);
                 $l_totalPercent += $l_levelPercent;
                 $l_commission = $request->member_fee * $l_levelPercent * 0.01;
         
-                if($memberMap->current_level == 1){
+                if($level_ctr == 1){
                     $l_l1Commission += $l_commission * 5 * 0.01;
                 }
-                if($memberMap->current_level == 2){
+                if($level_ctr == 2){
                     $l_l2Commission += $l_commission * 3 * 0.01;
                 }
-                if($memberMap->current_level == 3){
+                if($level_ctr == 3){
                     $l_level3Member_id = $memberMap->member_id;
                 }
                 $tblMemberIncome = new MemberIncome();
-                $tblMemberIncome->member_id = $memberMap->member_id;
+                $tblMemberIncome->member_id = $memberMap->parent_id;
                 $tblMemberIncome->income_type = 'Level Income';
                 $tblMemberIncome->ref_member_id = $request->member_id;
                 $tblMemberIncome->level_percent = $l_levelPercent;
@@ -651,7 +674,9 @@ class MemberAPIController extends Controller
         //===============================
         //Calculate and Add a Record for Direct Income in Level 3
         // In no one is at level 3 then add the amount to mansha
-        $l_level3Members = MemberMap::where('parent_id', $l_level3Member_id)->get();
+        $l_level3Members = MemberMap::where('member_id', $l_level3Member_id)
+                    ->where('level_ctr', 1)
+                    ->get();
         if($l_level3Members != null){
             if($l_level3Members->count() ==5){
                 $tblMemberIncome = new MemberIncome();
@@ -711,8 +736,8 @@ class MemberAPIController extends Controller
             if($l_calculatedLevel != $l_currentLevel){
                 DB::update('update members set current_level = ? where member_id = ?',[$l_calculatedLevel,$l_memberID]);
                 $l_reward = $this->getLevelReward($l_calculatedLevel);
-                $tblReward = new MemberRewards();
-                if(strlen(trim($tblReward)) >0){
+                if(strlen(trim($l_reward)) >0){
+                    $tblReward = new MemberRewards();
                     $tblReward->member_id = $l_memberID;
                     $tblReward->level_id = $l_calculatedLevel;
                     $tblReward->member_count = $l_memberCount;
@@ -749,10 +774,20 @@ class MemberAPIController extends Controller
     private function addCashbackReward($request){
         $tbl = new RechargePointRegister();
         $tbl->member_id = $request->member_id;
+        $tbl->payment_id = $request->payment_int_id;
+        $tbl->tran_date = date('Y-m-d H:i:s');
+        $tbl->recharge_points_added = $request->member_fee;
+        $tbl->balance_points += $this->CASHBACK_REWARD;
+        $tbl->save();
+
+        $tbl = new RechargePointRegister();
+        $tbl->member_id = $request->member_id;
+        $tbl->payment_id = $request->payment_int_id;
         $tbl->tran_date = date('Y-m-d H:i:s');
         $tbl->recharge_points_added = $this->CASHBACK_REWARD;
         $tbl->balance_points += $this->CASHBACK_REWARD;
         $tbl->save();
+
     }
 
     // /**

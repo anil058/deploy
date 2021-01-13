@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateLevelAchieversTable extends Migration
+class CreateRechargeProvidersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,12 @@ class CreateLevelAchieversTable extends Migration
      */
     public function up()
     {
-        Schema::create('level_achievers', function (Blueprint $table) {
+        Schema::create('recharge_providers', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('member_id')->index();
-            $table->integer('level_id')->index();
-            $table->dateTime('tran_date')->nullable()->index();
-            $table->dateTime('qualifying_date')->nullable()->index();
+            $table->string('provider_name')->index();
+            $table->integer('service_id')->nullable()->unsigned()->index();
+            $table->string('description')->nullable();
+            $table->boolean('status')->index();
             $table->timestamps();
         });
     }
@@ -30,6 +30,6 @@ class CreateLevelAchieversTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('level_achievers');
+        Schema::dropIfExists('recharge_providers');
     }
 }

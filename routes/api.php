@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api;
 use App\Http\Controllers\Api\MemberAPIController;
 use App\Http\Controllers\Api\TranApiController;
+use App\Http\Controllers\Api\MiscApiController;
+use App\Http\Controllers\Api\RechargeController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Auth\ApiAuthController;
 use App\Http\Controllers\Api\UserImageController;
@@ -60,8 +62,15 @@ Route::post('/validateotp', [ApiAuthController::class,'validateOTP'])->middlewar
 
 Route::post('/usermembers', [TranApiController::class,'GetUserMembers'])->middleware('api.key');
 Route::post('/memberincomes', [TranApiController::class,'GetTransactions'])->middleware('api.key');
+Route::post('/dashboard', [TranApiController::class,'Dashboard'])->middleware('api.key');
+Route::post('/memberrewards', [TranApiController::class,'MemberRewards']); //->middleware('api.key');
 
 // Route::post('/updatepayment', [ApiAuthController::class,'updatePaymentStatus'])->middleware('api.key');
+
+Route::get('/updaterechargeservices', [MiscApiController::class,'updateRechargeServices']);
+
+Route::post('/getproviders', [RechargeController::class,'GetProviders'])->middleware('api.key');
+Route::post('/rechargemobile', [RechargeController::class,'RechargeMobile']); //->middleware('api.key');
 
 
 
