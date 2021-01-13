@@ -281,8 +281,8 @@ class TranApiController extends Controller
                 count(m.member_id) AS TotalTeamSize,
                 SUM(if((m.joining_date between date_sub(now(),INTERVAL 1 WEEK) and now()),1,0)) AS week_members
             FROM members m
-            INNER JOIN member_maps p ON m.member_id=p.parent_id
-            WHERE p.parent_id=".$request->user()->id." GROUP BY m.referal_code,m.unique_id";
+            LEFT JOIN member_maps p ON m.member_id=p.parent_id
+            WHERE m.member_id=".$request->user()->id." GROUP BY m.referal_code,m.unique_id";
 
             $records = DB::select($sql);
             $response['status'] = true;
