@@ -19,7 +19,7 @@ class CreateTempMembersTable extends Migration
             $table->string('referal_code');
             $table->string('first_name')->index();
             $table->string('last_name')->index();
-            $table->string('email')->unique();
+            $table->string('email')->index();
             $table->string('address')->index();
             $table->string('mobile_no');
             $table->decimal('membership_fee');

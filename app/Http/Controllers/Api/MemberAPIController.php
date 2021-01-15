@@ -308,7 +308,7 @@ class MemberAPIController extends Controller
             generateOTP($request->mobile_no);
 
             $orderid = "";
-            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee, $taxPercent);
+            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee * 100, $taxPercent);
             if(strlen($orderid) == 0){
                 throw new Exception("Could not generate order id");
             }
@@ -337,6 +337,8 @@ class MemberAPIController extends Controller
                 "email" => "required|email",
                 "address" => "string|max:200",
                 'pan_no' => 'required|string|max:10',
+                'bank_name' => 'required|string|max:30',
+                'account_no' => 'required|string|max:30',
             ]);
              
             if ($validator->fails()) {
@@ -362,6 +364,9 @@ class MemberAPIController extends Controller
             $tblMember->email = $request->email;
             $tblMember->address = $request->address;
             $tblMember->pan_no = $request->pan_no;
+            $tblMember->bank_name = $request->bank_name;
+            $tblMember->account_number = $request->account_no;
+
             $tblMember->save();
 
             $response = ['status' => true, 

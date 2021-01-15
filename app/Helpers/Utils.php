@@ -27,8 +27,8 @@ function generateOTP($mobile_no) {
             $tblOTP->expiry_at = $expiryDate;
             $tblOTP->save();
         }
-        $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
-        $response1 = Http::get($url);
+        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        // $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;
@@ -57,9 +57,10 @@ function newOTP() {
     // for ($i = 1; $i <= 4; $i++) { 
     //     $result .= substr($generator, (rand()%(strlen($generator))), 1); 
     // } 
-    while($result < 1000){
+    while($result < 99999){
         $result .= substr($generator, (rand()%(strlen($generator))), 1); 
     }
+    $result = substr('00000'.$result, -4);
     // if(strlen($result) != 4){
     //     $generator1 = "135792468"; 
     //     $result .= substr($generator1, (rand()%(strlen($generator1))), 1);         
@@ -186,40 +187,73 @@ function createRazorpayTempOrder($tmpid,$amount,$taxPercent){
         $tblPaymentGateway->receipt_id = $receiptID;
         $tblPaymentGateway->fake = true;
         $tblPaymentGateway->save();
+
         return $orderID;
     } catch(Exception $e){
         return $e->getMessage();
     }
 }
-
-function createRazorpayMoneyOrder($memberid,$amount){
+function createRazorpayMoneyOrder($tmpid,$amount,$taxPercent){
     try{
         $api_key = 'rzp_test_H4Hl4CW33loNwZ';
         $api_secret ='Rq9k7LaMa6FHOgz4ujcryTBz';
 
-        $tblMembers = Member::where('member_id', $memberid);
-        if($tblMembers == null)
-            return '';
         $receiptID = getUniqueTicketNo();
         $api = new Api($api_key, $api_secret);
         $order  = $api->order->create(array('receipt' => $receiptID, 'amount' => $amount, 'currency' => 'INR')); // Creates order
         $orderID = $order['id'];     
 
+        $taxAmount = round($amount * $taxPercent * 0.01,2);
+        $netAmount = $amount + $taxAmount;
+
         $tblPaymentGateway = new PaymentGateway();
-        $tblPaymentGateway->member_id = $memberid;
+        $tblPaymentGateway->temp_id = $tmpid;
         $tblPaymentGateway->amount = $amount;
+        $tblPaymentGateway->tax_percent = $taxPercent;
+        $tblPaymentGateway->tax_amount = $taxAmount;
+        $tblPaymentGateway->net_amount =  $netAmount;
         $tblPaymentGateway->order_id = $orderID;
         $tblPaymentGateway->receipt_id = $receiptID;
         $tblPaymentGateway->fake = true;
         $tblPaymentGateway->save();
+        
         $ret['txn_id'] = $orderID;
         $ret['id'] = $tblPaymentGateway->id;
-
         return $ret;
+        // return $orderID;
     } catch(Exception $e){
-        return '';
+        return $e->getMessage();
     }
 }
+
+// function createRazorpayMoneyOrder($memberid,$amount,,$taxPercent){
+//     try{
+//         $api_key = 'rzp_test_H4Hl4CW33loNwZ';
+//         $api_secret ='Rq9k7LaMa6FHOgz4ujcryTBz';
+
+//         $tblMembers = Member::where('member_id', $memberid);
+//         if($tblMembers == null)
+//             return '';
+//         $receiptID = getUniqueTicketNo();
+//         $api = new Api($api_key, $api_secret);
+//         $order  = $api->order->create(array('receipt' => $receiptID, 'amount' => $amount, 'currency' => 'INR')); // Creates order
+//         $orderID = $order['id'];     
+
+//         $tblPaymentGateway = new PaymentGateway();
+//         $tblPaymentGateway->member_id = $memberid;
+//         $tblPaymentGateway->amount = $amount;
+//         $tblPaymentGateway->order_id = $orderID;
+//         $tblPaymentGateway->receipt_id = $receiptID;
+//         $tblPaymentGateway->fake = true;
+//         $tblPaymentGateway->save();
+//         $ret['txn_id'] = $orderID;
+//         $ret['id'] = $tblPaymentGateway->id;
+
+//         return $ret;
+//     } catch(Exception $e){
+//         return '';
+//     }
+// }
 
 
 function getUniqueTicketNo(){

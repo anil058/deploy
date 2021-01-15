@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Models\PaymentGateway;
+use App\Models\Param;
+use App\Models\MemberDeposit;
 use App\Models\TempMember;
 use Carbon\Carbon;
 use Exception;
@@ -17,9 +19,32 @@ use Illuminate\Support\Facades\DB;
 
 class TranApiController extends Controller
 {
+    private $CASHBACK_REWARD;
+    private $TAX_PERCENT;
+    private $MEMBER_COUNTER;
+    private $MEMBERSHIP_FEE;
+
     public function __construct()
     {
         $this->middleware('auth:api')->except(['MemberRewards']);
+    }
+
+    private function populateParams(){
+        $tblParamTable = Param::all();
+        foreach ($tblParamTable as $refTable){
+            switch($refTable->param){
+                case "MEMBERSHIP_FEE":
+                    $this->MEMBERSHIP_FEE = $refTable->int_value;
+                    break;
+                case "TAX_PERCENT":
+                    $this->TAX_PERCENT = $refTable->string_value;
+                    break;
+                case "CASHBACK_REWARD":
+                    $this->CASHBACK_REWARD = $refTable->int_value;
+                    break;
+                default :
+            }
+        }
     }
 
     public function GetTxnID(Request $request){
@@ -34,21 +59,36 @@ class TranApiController extends Controller
                 return response()->json(['status' => false, 'message' => $errors]);
             }
     
-            $result = createRazorpayMoneyOrder($request->user()->id, $request->amount);
-            if(count($result) == 0){
+            $this->populateParams();
+            
+            $result = createRazorpayMoneyOrder($request->user()->id, $request->amount * 100, $this->TAX_PERCENT);
+            if(count($result) != 2){
                 $response = ['status' => false, 
                 'message' => 'Could not create payment order',
                 ];
                 return response($response, 200);
-            } else {
-                $response = ['status' => true, 
-                'id' => $result['id'], 
-                'txn_id' => $result['txn_id'], 
-                'amount' => $request->amount,
-                'message' => 'Successfully Created Payment Order',
-                ];
-                return response($response, 200);
             }
+            $response = ['status' => true, 
+            'id' => $result['id'],
+            'txn_id' => $result['txn_id'], 
+            'amount' => $request->amount,
+            'message' => 'Successfully Created Payment Order',
+            ];
+            return response($response, 200);
+
+            // if(strlen($orderid) == 0){
+            //     $response = ['status' => false, 
+            //     'message' => 'Could not create payment order',
+            //     ];
+            //     return response($response, 200);
+            // }
+            // $response = ['status' => true, 
+            // 'ID' => 0,
+            // 'txn_id' => $orderid, 
+            // 'amount' => $request->amount,
+            // 'message' => 'Successfully Created Payment Order',
+            // ];
+            // return response($response, 200);
    
         } catch(Exception $e) {
                 $response = ['status' => false, 
@@ -117,6 +157,16 @@ class TranApiController extends Controller
                     break;
             }
 
+            $tblMemberDeposits = new MemberDeposit();
+            $tblMemberDeposits->member_id = $request->user()->id;
+            $tblMemberDeposits->gateway_id = $tblPaymentGateway->id;
+            $tblMemberDeposits->amount = $tblPaymentGateway->amount;
+            $tblMemberDeposits->tax_percent = $tblPaymentGateway->tax_percent;
+            $tblMemberDeposits->tax_amount = $tblPaymentGateway->tax_amount;
+            $tblMemberDeposits->net_amount = $tblPaymentGateway->net_amount;
+            $tblMemberDeposits->deposit_type = 'TOPUP';
+            $tblMemberDeposits->save();
+
             DB::commit();
             $response = ['status' => true, 'message' => 'Successfully Added Money'];
             return response($response, 200);
@@ -130,7 +180,7 @@ class TranApiController extends Controller
 
     public function GetPayments(Request $request){
         try{
-            $recs = PaymentGateway::where('member_id', $request->user()->id)
+            $recs = MemberDeposit::where('member_id', $request->user()->id)
                ->orderBy('created_at', 'desc')
                ->take(40)
                ->get();
@@ -141,7 +191,12 @@ class TranApiController extends Controller
                 $val['recharge_on'] = Carbon::parse($rec->created_at)->format('d/m/Y');
                 array_push($arr,$val);
             }
-            return $arr;
+            $response = ['status' => true, 
+            'message' => 'successfully Added',
+            'data' => $arr
+            ];
+
+            return $response;
 
         } catch(Exception $e){
             $response = ['status' => false, 
