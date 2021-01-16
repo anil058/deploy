@@ -200,7 +200,7 @@ function createRazorpayMoneyOrder($tmpid,$amount,$taxPercent){
 
         $receiptID = getUniqueTicketNo();
         $api = new Api($api_key, $api_secret);
-        $order  = $api->order->create(array('receipt' => $receiptID, 'amount' => $amount, 'currency' => 'INR')); // Creates order
+        $order  = $api->order->create(array('receipt' => $receiptID, 'amount' => $amount * 100, 'currency' => 'INR')); // Creates order
         $orderID = $order['id'];     
 
         $taxAmount = round($amount * $taxPercent * 0.01,2);

@@ -61,7 +61,7 @@ class TranApiController extends Controller
     
             $this->populateParams();
             
-            $result = createRazorpayMoneyOrder($request->user()->id, $request->amount * 100, $this->TAX_PERCENT);
+            $result = createRazorpayMoneyOrder($request->user()->id, $request->amount, $this->TAX_PERCENT);
             if(count($result) != 2){
                 $response = ['status' => false, 
                 'message' => 'Could not create payment order',

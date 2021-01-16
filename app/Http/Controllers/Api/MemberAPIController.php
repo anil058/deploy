@@ -308,7 +308,7 @@ class MemberAPIController extends Controller
             generateOTP($request->mobile_no);
 
             $orderid = "";
-            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee * 100, $taxPercent);
+            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee , $taxPercent);
             if(strlen($orderid) == 0){
                 throw new Exception("Could not generate order id");
             }
