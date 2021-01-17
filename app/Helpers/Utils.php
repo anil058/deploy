@@ -5,13 +5,18 @@ use App\Helpers\MiscFunctions;
 use App\Models\Member;
 use App\Models\Otp;
 use App\Models\PaymentGateway;
+use App\Models\TempMember;
 use Illuminate\Support\Facades\Http;
 use Razorpay\Api\Api;
 // use Exception;
 
-function generateOTP($mobile_no) {
+function generateNewMemberOTP($mobile_no) {
     try{
         $expiryDate = Carbon::now()->addMinute(10);
+        $tblTempMember = TempMember::where('mobile_no',$mobile_no)->first();
+        if($tblTempMember == null){
+            return false;
+        }
         $otp = newOTP();
         $msg = urlencode("OTP is ".$otp." for Mansha Real Rupees");
         $tblOTP = Otp::where('mobile_no', $mobile_no)->first();
@@ -29,6 +34,36 @@ function generateOTP($mobile_no) {
         }
         $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
         $response1 = Http::get($url);
+        return true;
+    } catch(\Exception $e){
+        return false;
+    }
+}
+
+function generateMemberOTP($mobile_no) {
+    try{
+        $expiryDate = Carbon::now()->addMinute(10);
+        $tblTempMember = Member::where('mobile_no',$mobile_no)->first();
+        if($tblTempMember == null){
+            return false;
+        }
+        $otp = newOTP();
+        $msg = urlencode("OTP is ".$otp." for Mansha Real Rupees");
+        $tblOTP = Otp::where('mobile_no', $mobile_no)->first();
+        if($tblOTP === null){
+            $tblOTP = new Otp();
+            $tblOTP->mobile_no =  $mobile_no;
+            $tblOTP->otp =  $otp;
+            $tblOTP->expiry_at = $expiryDate;
+            $tblOTP->save();
+        } else {
+            $tblOTP->mobile_no =  $mobile_no;
+            $tblOTP->otp =  $otp;
+            $tblOTP->expiry_at = $expiryDate;
+            $tblOTP->save();
+        }
+        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        // $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;

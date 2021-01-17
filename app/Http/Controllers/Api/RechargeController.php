@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\RechargeProvider;
 use App\Models\RechargeRequest;
 use App\Models\Param;
+use App\Models\Member;
 use App\Http\Controllers\Api\MiscApiController;
 use Exception;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Validator;
 
 class RechargeController extends Controller
 {
@@ -17,7 +19,7 @@ class RechargeController extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth:api')->except(['RechargeMobile']);
+        $this->middleware('auth:api'); //->except(['RechargeMobile']);
     }
 
     private function AddRechargeRequest(Request $request){
@@ -25,7 +27,7 @@ class RechargeController extends Controller
             $tblProviders = RechargeProvider::find($request->provider_id);
             $tblRechargeRequest = new RechargeRequest();
             $tblRechargeRequest->member_id = $request->user()->id;
-            $tblRechargeRequest->mobile_no = $request->number;
+            $tblRechargeRequest->mobile_no = $request->mobile_no;
             $tblRechargeRequest->provider_id = $request->provider_id;
             $tblRechargeRequest->provider_name = $tblProviders->provider_name;
             $tblRechargeRequest->amount = $request->amount;
@@ -42,8 +44,10 @@ class RechargeController extends Controller
         try{
             $tblProviders = RechargeProvider::where('service_id', 1)->get(['id','provider_name']);
 
+            $tblMember = Member::where('member_id', $request->user()->id)->first();
+
             $response = ['status' => true, 
-            'message' => 'Successfully Extracted Providers',
+            'message' => 'Rs. ' . $tblMember->recharge_points,
             'data' => $tblProviders,
             ];
             return response($response, 200);
@@ -56,6 +60,22 @@ class RechargeController extends Controller
     }
 
     public function RechargeMobile(Request $request){
+        $validator = Validator::make($request->all(), [
+            'provider_id' => 'required|numeric',
+            'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+            'amount' => 'required|numeric:max:1000'
+        ]);
+         
+        if ($validator->fails()) {
+            $errors = $validator->errors()->first();
+            $response = ['status' => false, 'message' => $errors];
+            return response($response, 200);
+        }
+
+        //Check if there is an existing user with same mobile no
+        // $tblMember = Member::where('mobile_no', $request->mobile_no)->first();
+        $id = $request->user()->id;
+
         try{
             $token1 = new MiscApiController();
             $token = $token1->updateRechargeToken();
@@ -83,7 +103,7 @@ class RechargeController extends Controller
                         'Authorization' => "Bearer {$token}"
                     ],
                     'form_params' => [
-                        'number' => $request->number,
+                        'number' => $request->mobile_no,
                         'amount' => $request->amount,
                         'provider_id' => $request->provider_id,
                         'client_id' => $client_id,
@@ -95,6 +115,12 @@ class RechargeController extends Controller
             if($response->getStatusCode() == 200 ){
                 $ret = $response->getBody()->getContents();
                 $json = json_decode($ret, true);
+                $flag = true;
+                $successMessage = 'Successfully Recharged';
+                if($json['status_id'] == 2){
+                    $flag = false;
+                    $successMessage = 'Could not recharge';
+                }
 
                 $tblRechargeRequest = RechargeRequest::find($client_id);
                 $tblRechargeRequest->status_id = $json['status_id'];
@@ -104,7 +130,11 @@ class RechargeController extends Controller
                 $tblRechargeRequest->orderid = $json['orderid'];
                 $tblRechargeRequest->verified = 1;
                 $tblRechargeRequest->save();
-                $response = ['status' => true, 'status_id' => $json['status_id'], 'message' => 'Successfully updated recharge records'];
+                $response = [
+                    'status' => $flag, 
+                    'message' =>  $successMessage,
+                    'status_id' => $json['status_id'] 
+                ];
                 return response($response, 200);
             }
             $response = ['status' => false, 'message' => 'Error connecting recharge server'];

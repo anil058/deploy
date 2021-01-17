@@ -213,7 +213,7 @@ class ApiAuthController extends Controller
                 return response($response, 200);
             }
 
-            if(generateOTP($request->mobile_no) == true){
+            if(generateMemberOTP($request->mobile_no) == true){
                 $response = ['status' => true, 'message' => 'OTP Generated'];
                 // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=9835718779&text=Test%20SMS&priority=ndnd&stype=normal";
                 // $response1 = Http::get($url);

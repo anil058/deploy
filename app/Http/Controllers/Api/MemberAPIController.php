@@ -305,7 +305,7 @@ class MemberAPIController extends Controller
             $tempUser->ip = $request->ip();
             $tempUser->save();
            
-            generateOTP($request->mobile_no);
+            generateNewMemberOTP($request->mobile_no);
 
             $orderid = "";
             $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee , $taxPercent);
