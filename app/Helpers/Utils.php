@@ -70,6 +70,7 @@ function generateMemberOTP($mobile_no) {
     }
 }
 
+
 function validateOTP($mobile_no) {
     try{
         $tblOTP = Otp::where('mobile_no', $mobile_no)->first();

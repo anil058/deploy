@@ -779,6 +779,7 @@ class MemberAPIController extends Controller
     private function addCashbackReward($request){
         $tbl = new RechargePointRegister();
         $tbl->member_id = $request->member_id;
+        $tbl->ref_member_id = $request->member_id;
         $tbl->payment_id = $request->payment_int_id;
         $tbl->tran_date = date('Y-m-d H:i:s');
         $tbl->recharge_points_added = $request->member_fee;
@@ -787,12 +788,12 @@ class MemberAPIController extends Controller
 
         $tbl = new RechargePointRegister();
         $tbl->member_id = $request->member_id;
+        $tbl->ref_member_id = $request->member_id;
         $tbl->payment_id = $request->payment_int_id;
         $tbl->tran_date = date('Y-m-d H:i:s');
         $tbl->recharge_points_added = $this->CASHBACK_REWARD;
         $tbl->balance_points += $this->CASHBACK_REWARD;
         $tbl->save();
-
     }
 
     // /**
