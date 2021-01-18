@@ -17,7 +17,7 @@ function generateNewMemberOTP($mobile_no) {
         if($tblTempMember == null){
             return false;
         }
-        $otp = newOTP();
+        $otp = '1111'; // newOTP();
         $msg = urlencode("OTP is ".$otp." for Mansha Real Rupees");
         $tblOTP = Otp::where('mobile_no', $mobile_no)->first();
         if($tblOTP === null){
