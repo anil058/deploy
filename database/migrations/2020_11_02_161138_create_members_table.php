@@ -26,7 +26,6 @@ class CreateMembersTable extends Migration
             $table->string('email')->unique();
             $table->string('referal_code')->unique();
             $table->string('father')->nullable();
-            $table->string('pan_no')->nullable();
             $table->string('mobile_no');
             $table->foreignId('designation_id')->references('id')->on('club_masters')->onDelete('cascade');
             $table->integer('current_level')->index();
@@ -34,9 +33,15 @@ class CreateMembersTable extends Migration
             $table->dateTime('joining_date')->nullable()->index();
             $table->string('pin')->nullable();
             $table->text('image')->nullable();
+            $table->string('pan_no')->nullable();
+            $table->string('aadhar_id_no')->nullable();
+            $table->string('voter_id_no')->nullable();
+            $table->string('dl_id_no')->nullable();
+            $table->string('passport_id_no')->nullable();
             $table->string('bank_name')->nullable();
             $table->string('ifsc_code')->nullable();
             $table->string('account_number')->nullable();
+            $table->boolean('active')->default(0);
             $table->timestamps();
             // $table->enum('user_status', array('Active', 'Deactive'))->default('Active');
         });

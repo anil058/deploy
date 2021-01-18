@@ -223,7 +223,7 @@ class TranApiController extends Controller
             if($request->level_ctr == "All"){
                 DB::enableQueryLog();
 
-                $tblMembers = DB::select("SELECT m.member_id,d.designation,m.unique_id,m.image,
+                $tblMembers = DB::select("SELECT m.member_id,d.designation,m.mobile_no as unique_id,m.image,
                     CONCAT(m.first_name,' ',m.last_name) AS member_name,
                     CONCAT(m1.first_name,' ',m1.last_name) AS introducer,m1.unique_id AS parent_code,
                     DATE_FORMAT(m.joining_date,'%d/%m/%Y') AS joining_date,(p.level_ctr + 1) AS downline
