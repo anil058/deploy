@@ -249,19 +249,24 @@ class MemberAPIController extends Controller
             $id = $request->user()->id;
             $tblMember = Member::where('member_id', $id)->first();
             
+            $image_path = public_path("/member_images/dummy.jpg");
             $path = public_path("/member_images/") . $tblMember->unique_id;
-            $files = array_diff(scandir($path), array('.', '..'));
-            $image_path = '';
-
-            foreach($files as $file) {
-                if (strpos( $file,"profile_img.") !== false){
-                    $image_path = $path.'/'.$file;
+            if(file_exists($path)){
+                $path = public_path("/member_images/") . $tblMember->unique_id;
+                $files = array_diff(scandir($path), array('.', '..'));
+                $image_path = '';
+    
+                foreach($files as $file) {
+                    if (strpos( $file,"profile_img.") !== false){
+                        $image_path = $path.'/'.$file;
+                    }
                 }
             }
+            
 
-            if (strlen($image_path) == 0){
-                $image_path = public_path("/member_images/dummy.jpg");
-            }
+            // if (strlen($image_path) == 0){
+            //     $image_path = public_path("/member_images/dummy.jpg");
+            // }
 
             $imagedata = file_get_contents($image_path);
             $profile_img = base64_encode($imagedata);
