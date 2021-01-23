@@ -11,7 +11,7 @@ use Illuminate\Validation\Rule;
 use App\Models\PaymentGateway;
 use App\Models\Param;
 use App\Models\MemberDeposit;
-use App\Models\TempMember;
+use App\Models\MemberMap;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -24,9 +24,24 @@ class TranApiController extends Controller
     private $MEMBER_COUNTER;
     private $MEMBERSHIP_FEE;
 
+    private $arrayTeam = array();
+
     public function __construct()
     {
         $this->middleware('auth:api')->except(['MemberRewards']);
+    }
+
+    private function populateTeam($member_id){
+        DB::enableQueryLog();
+        $tblMembers = MemberMap::join('members', 'member_maps.member_id', '=', 'members.member_id')
+        ->where('member_maps.parent_id', $member_id)
+        ->where('member_maps.level_ctr', '<', 12)
+        ->where('member_maps.level_ctr', '>', 0)
+        ->get(['members.*','member_maps.level_ctr']);
+
+        foreach ($tblMembers as $refTable){
+            $this->arrayTeam[] = $refTable;
+        }
     }
 
     private function populateParams(){
@@ -398,5 +413,9 @@ class TranApiController extends Controller
             $response = ['status' => false, 'message' => $e->getMessage()];
             return response($response, 200);
         }
+    }
+
+    public function CalculateClubIncome(Request $request){
+
     }
 }

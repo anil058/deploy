@@ -24,6 +24,8 @@ class CreateClubMasterTable extends Migration
             $table->integer('diamond_req')->unsigned()->index();
             $table->integer('level_req_id')->unsigned()->index();
             $table->integer('level_req_members')->unsigned()->index();
+            $table->float('club_percent');
+            $table->boolean('is_stto');
             $table->timestamps();
         });
         DB::table('club_masters')->insert(array(
@@ -34,7 +36,9 @@ class CreateClubMasterTable extends Migration
             'gold_req' => 0,
             'diamond_req' => 0,
             'level_req_id' => 0,
-            'level_req_members' => 0
+            'level_req_members' => 0,
+            'club_percent' => 0,
+            'is_stto' => 0
         ));
         DB::table('club_masters')->insert(array(
             'designation' => 'Bronze Achiever',
@@ -44,7 +48,9 @@ class CreateClubMasterTable extends Migration
             'gold_req' => 0,
             'diamond_req' => 0,
             'level_req_id' => 0,
-            'level_req_members' => 5
+            'level_req_members' => 5,
+            'club_percent' => 5,
+            'is_stto' => 0
         ));
         DB::table('club_masters')->insert(array(
             'designation' => 'Silver Achiever',
@@ -54,7 +60,9 @@ class CreateClubMasterTable extends Migration
             'gold_req' => 0,
             'diamond_req' => 0,
             'level_req_id' => 3,
-            'level_req_members' => 125
+            'level_req_members' => 125,
+            'club_percent' => 5,
+            'is_stto' => 1
         ));
         DB::table('club_masters')->insert(array(
             'designation' => 'Gold Achiever',
@@ -64,7 +72,9 @@ class CreateClubMasterTable extends Migration
             'gold_req' => 0,
             'diamond_req' => 0,
             'level_req_id' => 6,
-            'level_req_members' => 3375
+            'level_req_members' => 3375,
+            'club_percent' => 3,
+            'is_stto' => 1
         ));
         DB::table('club_masters')->insert(array(
             'designation' => 'Diamond Achiever',
@@ -74,7 +84,9 @@ class CreateClubMasterTable extends Migration
             'gold_req' => 3,
             'diamond_req' => 0,
             'level_req_id' => 9,
-            'level_req_members' => 91125
+            'level_req_members' => 91125,
+            'club_percent' => 2,
+            'is_stto' => 1
         ));
         DB::table('club_masters')->insert(array(
             'designation' => 'Royalty Achiever',
@@ -84,7 +96,9 @@ class CreateClubMasterTable extends Migration
             'gold_req' => 0,
             'diamond_req' => 2,
             'level_req_id' => 12,
-            'level_req_members' => 729000
+            'level_req_members' => 729000,
+            'club_percent' => 1,
+            'is_stto' => 0
         ));
     }
 

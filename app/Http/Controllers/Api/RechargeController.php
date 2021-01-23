@@ -12,6 +12,7 @@ use Exception;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class RechargeController extends Controller
 {
@@ -19,7 +20,7 @@ class RechargeController extends Controller
 
     public function __construct()
     {
-        $this->middleware('auth:api'); //->except(['RechargeMobile']);
+        $this->middleware('auth:api');//->except(['GetNonRedeemableWallet']);
     }
 
     private function AddRechargeRequest(Request $request){
@@ -144,4 +145,28 @@ class RechargeController extends Controller
             return response($response, 200);
         }
     }
+
+    public function GetNonRedeemableWallet(Request $request){
+        try{
+            $sql = "SELECT m.unique_id, 
+                            CONCAT(m.first_name,' ',m.last_name) AS member_name,
+                            DATE_FORMAT(r.created_at,'%d/%m/%Y') AS TranDate,
+                            ifnull(r.recharge_points_added,0) as recharge_points_added,ifnull(r.recharge_points_consumed,0) as recharge_points_consumed,
+                            r.balance_points
+                        FROM recharge_point_registers r
+                        INNER JOIN members m ON r.ref_member_id=m.member_id
+                        WHERE r.member_id = 1"; //.$request->user()->id;
+
+             $records = DB::select($sql);
+             $response['status'] = true;
+             $response['message'] = 'Success';
+             $response["data"]=$records;
+             return response($response,200);
+         
+        } catch(Exception $e){
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            return response($response, 200);
+        }
+    }
+
 }

@@ -18,6 +18,7 @@ class CreatePayoutRequestsTable extends Migration
             $table->foreignId('member_id')->references('id')->on('members')->onDelete('cascade')->unsigned()->index();
             $table->double('request_amount')->unique();
             $table->double('payment_amount')->unique();
+            $table->string('status')->default('PENDING')->index();
             $table->foreignId('approved_id')->references('id')->on('users')->onDelete('cascade');
             $table->dateTime('approved_on')->nullable();
             $table->timestamps();

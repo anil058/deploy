@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Http;
 use Razorpay\Api\Api;
 // use Exception;
 
+function sendSMS($mobile_no,$msg){
+    $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+    $response1 = Http::get($url);
+}
+
 function generateNewMemberOTP($mobile_no) {
     try{
         $expiryDate = Carbon::now()->addMinute(10);
@@ -32,8 +37,11 @@ function generateNewMemberOTP($mobile_no) {
             $tblOTP->expiry_at = $expiryDate;
             $tblOTP->save();
         }
-        $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
-        $response1 = Http::get($url);
+
+        sendSMS($mobile_no,$msg);
+
+        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        // $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;
@@ -62,8 +70,9 @@ function generateMemberOTP($mobile_no) {
             $tblOTP->expiry_at = $expiryDate;
             $tblOTP->save();
         }
-        $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
-        $response1 = Http::get($url);
+        sendSMS($mobile_no,$msg);
+        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        // $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;
@@ -103,6 +112,23 @@ function newOTP() {
     // }
     return $result; 
 } 
+
+/** 
+ * recursively create a long directory path
+ */
+function createPath($path) {
+    if (is_dir($path)) return true;
+    $prev_path = substr($path, 0, strrpos($path, '/', -2) + 1 );
+    $return = createPath($prev_path);
+    // return ($return && is_writable($prev_path)) ? mkdir($path) : false;
+    if ($return && is_writable($prev_path)) {
+        $ret = mkdir($path);
+        chmod($path, 0777);
+        return $ret;
+    } else {
+        return false;
+    }
+}
 
 /** RAZORPAY INTEGRATION
 * https://github.com/razorpay/razorpay-php
@@ -205,13 +231,13 @@ function createRazorpayTempOrder($tmpid,$amount,$taxPercent){
         $api_key = 'rzp_test_H4Hl4CW33loNwZ';
         $api_secret ='Rq9k7LaMa6FHOgz4ujcryTBz';
 
-        $receiptID = getUniqueTicketNo();
-        $api = new Api($api_key, $api_secret);
-        $order  = $api->order->create(array('receipt' => $receiptID, 'amount' => $amount * 100, 'currency' => 'INR')); // Creates order
-        $orderID = $order['id'];     
-
         $taxAmount = round($amount * $taxPercent * 0.01,2);
         $netAmount = $amount + $taxAmount;
+
+        $receiptID = getUniqueTicketNo();
+        $api = new Api($api_key, $api_secret);
+        $order  = $api->order->create(array('receipt' => $receiptID, 'amount' => $netAmount * 100, 'currency' => 'INR')); // Creates order
+        $orderID = $order['id'];     
 
         $tblPaymentGateway = new PaymentGateway();
         $tblPaymentGateway->temp_id = $tmpid;

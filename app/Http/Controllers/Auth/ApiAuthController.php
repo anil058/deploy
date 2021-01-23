@@ -104,11 +104,40 @@ class ApiAuthController extends Controller
                     $user->api_token = $token;
                     $user->save();
     
-                    $path = public_path("/member_images/") . $tblMember->image;
-                    $imagedata = file_get_contents($path);
-                    $base64 = base64_encode($imagedata);
+                    $path = public_path("/member_images/") . $tblMember->unique_id;
+                    $files = array_diff(scandir($path), array('.', '..'));
+                    $image_path = '';
+
+                    foreach($files as $file) {
+                        if (strpos( $file,"profile_img.") !== false){
+                            $image_path = $path.'/'.$file;
+                        }
+                    }
+
+                    if (strlen($image_path) == 0){
+                        $image_path = public_path("/member_images/dummy.jpg");
+                    }
+
+                    $imagedata = file_get_contents($image_path);
+                    $profile_img = base64_encode($imagedata);
+           
+                    
+                    // $path = public_path("/member_images/") . $tblMember->unique_id;
+                    // if (file_exists($path) == false){
+                    //     $path = public_path("/member_images/dummy.jpg");
+                    // }
+                    // // $path = public_path("/member_images/") . $tblMember->image;
+
+                    // $imagedata = file_get_contents($path);
+                    // $base64 = base64_encode($imagedata);
     
-                    $response = ['status' => true, 'message' => 'Successful login','token' => $token, 'name' => $tblMember->first_name, 'designation' => $tblDesignation->designation, 'image' => $base64];
+                    $response = [
+                        'status' => true, 
+                        'message' => 'Successful login',
+                        'token' => $token, 
+                        'name' => $tblMember->first_name, 
+                        'designation' => $tblDesignation->designation, 
+                        'image' => $profile_img];
                     return response($response, 200);
                 } else {
                     $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];

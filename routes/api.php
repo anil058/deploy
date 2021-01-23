@@ -38,11 +38,12 @@ Route::group(['middleware' => ['cors', 'json.response', 'api.key']], function ()
 
     Route::post('/login', [ApiAuthController::class,'login']);
     Route::post('/createtempmember', [MemberAPIController::class, 'createTempUser']);
+    Route::post('/getreferername', [MemberAPIController::class,'getRefererName']);
+
     Route::post('/updatepaymentstatus', [MemberAPIController::class,'updatePaymentStatus']);
     Route::post('/updatememberinfo', [MemberAPIController::class, 'updateMemberInfo']);
     Route::post('/saveuserimage', [UserImageController::class,'saveUserImage']);
     Route::post('/getmemberinfo', [MemberAPIController::class,'getMemberInfo']);
-
     
     Route::post('/showuser', [MemberAPIController::class,'showUser']);
     Route::post('/changepassword', [ApiAuthController::class,'changePassword']);
@@ -55,6 +56,7 @@ Route::group(['middleware' => ['cors', 'json.response', 'api.key']], function ()
 });
 
 Route::get('/userimage', [UserImageController::class,'userImage']);
+Route::post('/getmemberdocuments', [UserImageController::class,'getMemberDocuments']);
 
 Route::post('/forgotpassword', [ApiAuthController::class,'forgotPassword']);
 Route::post('/generateotp', [ApiAuthController::class,'generateOTP'])->middleware('api.key');
@@ -62,15 +64,25 @@ Route::post('/validateotp', [ApiAuthController::class,'validateOTP'])->middlewar
 
 Route::post('/usermembers', [TranApiController::class,'GetUserMembers'])->middleware('api.key');
 Route::post('/memberincomes', [TranApiController::class,'GetTransactions'])->middleware('api.key');
+Route::post('/clubincomes', [TranApiController::class,'GetTransactions'])->middleware('api.key');
+Route::post('/reimbursments', [TranApiController::class,'GetTransactions'])->middleware('api.key');
+
 Route::post('/dashboard', [TranApiController::class,'Dashboard'])->middleware('api.key');
-Route::post('/memberrewards', [TranApiController::class,'MemberRewards']); //->middleware('api.key');
+Route::post('/memberrewards', [TranApiController::class,'MemberRewards'])->middleware('api.key');; //->middleware('api.key');
 
 // Route::post('/updatepayment', [ApiAuthController::class,'updatePaymentStatus'])->middleware('api.key');
 
-Route::get('/updaterechargeservices', [MiscApiController::class,'updateRechargeServices']);
+Route::get('/updaterechargeservices', [MiscApiController::class,'updateRechargeServices'])->middleware('api.key');;
 
 Route::post('/getproviders', [RechargeController::class,'GetProviders'])->middleware('api.key');
-Route::post('/rechargemobile', [RechargeController::class,'RechargeMobile']); //->middleware('api.key');
+Route::post('/rechargemobile', [RechargeController::class,'RechargeMobile'])->middleware('api.key');; //->middleware('api.key');
+Route::post('/nonredeemablewallet', [RechargeController::class,'GetNonRedeemableWallet'])->middleware('api.key');;
+
+Route::post('/saveuserpanfrontimage', [UserImageController::class,'saveUserPANFrontImage'])->middleware('api.key');;
+Route::post('/saveuserpanbackimage', [UserImageController::class,'saveUserPANBackImage'])->middleware('api.key');;
+Route::post('/saveuseridfrontimage', [UserImageController::class,'saveUserIDFrontImage'])->middleware('api.key');;
+Route::post('/saveuseridbackimage', [UserImageController::class,'saveUserIDBackImage'])->middleware('api.key');;
+
 
 
 

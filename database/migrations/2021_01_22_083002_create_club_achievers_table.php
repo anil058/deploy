@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateNWTurnOversTable extends Migration
+class CreateClubAchieversTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,11 @@ class CreateNWTurnOversTable extends Migration
      */
     public function up()
     {
-        Schema::create('n_w_turn_overs', function (Blueprint $table) {
+        Schema::create('club_achievers', function (Blueprint $table) {
             $table->id();
-            $table->integer('turnover');
+            $table->bigInteger('member_id')->index();
+            $table->integer('designation_id')->index();
+            $table->date('tran_date')->nullable()->index();
             $table->timestamps();
         });
     }
@@ -27,6 +29,6 @@ class CreateNWTurnOversTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('n_w_turn_overs');
+        Schema::dropIfExists('club_achievers');
     }
 }
