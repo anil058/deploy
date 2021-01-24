@@ -103,13 +103,14 @@ class MemberAPIController extends Controller
             // $txn_id = $this->newTxnID();
             // $txn_id = createRazorpayTempOrder()
             // dd($txn_id);
-            $this->populateParams();
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
                 $response = ['status' => false, 'message' => $errors];
                 return response($response, 200);
                 // return response()->json(['status' => false, 'message' => $errors],200);
             }
+
+            $this->populateParams();
     
             //Check if referal code is valid
             // $tblReferal = Referal::where('referal_code', $request->referal_code)
@@ -258,7 +259,7 @@ class MemberAPIController extends Controller
     
                 foreach($files as $file) {
                     if (strpos( $file,"profile_img.") !== false){
-                        $image_path = $path.'/'.$file;
+                        $image_path = public_path("/member_images/dummy.jpg");
                     }
                 }
             }

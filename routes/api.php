@@ -63,8 +63,8 @@ Route::post('/generateotp', [ApiAuthController::class,'generateOTP'])->middlewar
 Route::post('/validateotp', [ApiAuthController::class,'validateOTP'])->middleware('api.key');
 
 Route::post('/usermembers', [TranApiController::class,'GetUserMembers'])->middleware('api.key');
-Route::post('/memberincomes', [TranApiController::class,'GetTransactions'])->middleware('api.key');
-Route::post('/clubincomes', [TranApiController::class,'GetTransactions'])->middleware('api.key');
+Route::post('/memberincomes', [TranApiController::class,'GetTransactionsRedeemable'])->middleware('api.key');
+Route::post('/clubincomes', [TranApiController::class,'GetTransactionsClub'])->middleware('api.key');
 Route::post('/reimbursments', [TranApiController::class,'GetTransactions'])->middleware('api.key');
 
 Route::post('/dashboard', [TranApiController::class,'Dashboard'])->middleware('api.key');
@@ -72,17 +72,18 @@ Route::post('/memberrewards', [TranApiController::class,'MemberRewards'])->middl
 
 // Route::post('/updatepayment', [ApiAuthController::class,'updatePaymentStatus'])->middleware('api.key');
 
-Route::get('/updaterechargeservices', [MiscApiController::class,'updateRechargeServices'])->middleware('api.key');;
+Route::get('/updaterechargeservices', [MiscApiController::class,'updateRechargeServices'])->middleware('api.key');
 
 Route::post('/getproviders', [RechargeController::class,'GetProviders'])->middleware('api.key');
 Route::post('/rechargemobile', [RechargeController::class,'RechargeMobile'])->middleware('api.key');; //->middleware('api.key');
-Route::post('/nonredeemablewallet', [RechargeController::class,'GetNonRedeemableWallet'])->middleware('api.key');;
+Route::post('/nonredeemablewallet', [RechargeController::class,'GetNonRedeemableWallet'])->middleware('api.key');
 
-Route::post('/saveuserpanfrontimage', [UserImageController::class,'saveUserPANFrontImage'])->middleware('api.key');;
-Route::post('/saveuserpanbackimage', [UserImageController::class,'saveUserPANBackImage'])->middleware('api.key');;
-Route::post('/saveuseridfrontimage', [UserImageController::class,'saveUserIDFrontImage'])->middleware('api.key');;
-Route::post('/saveuseridbackimage', [UserImageController::class,'saveUserIDBackImage'])->middleware('api.key');;
+Route::post('/saveuserpanfrontimage', [UserImageController::class,'saveUserPANFrontImage'])->middleware('api.key');
+Route::post('/saveuserpanbackimage', [UserImageController::class,'saveUserPANBackImage'])->middleware('api.key');
+Route::post('/saveuseridfrontimage', [UserImageController::class,'saveUserIDFrontImage'])->middleware('api.key');
+Route::post('/saveuseridbackimage', [UserImageController::class,'saveUserIDBackImage'])->middleware('api.key');
 
+Route::post('/calculatedailyclubincome', [MiscApiController::class,'calculateClubIncome']);
 
 
 

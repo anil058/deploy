@@ -305,21 +305,21 @@ class TranApiController extends Controller
         }
     }
 
-    public function GetTransactions(Request $request){
+    public function GetTransactionsRedeemable(Request $request){
         try{
             // $records = DB::table('member_incomes')
             //                 ->join('members', 'members.member_id', 'member_incomes.member_id')
             //                 ->selectRaw("concat(first_name,' ',last_name) as name, unique_id, income_type,level_percent,ref_amount,commission,date_format(member_incomes.created_at,'%d/%m/%Y') as Dated")
             //                 ->where('member_incomes.member_id', $request->user()->id)
             //                 ->get();
-            $sql = "SELECT i.commission,m.unique_id AS ref_id,
+            $sql = "SELECT ifnull(i.commission,'') as commission,m.unique_id AS ref_id,
                     concat(m.first_name,' ',m.last_name) AS ref_name,
-                    i.level_percent,
-                    i.ref_amount,i.income_type,
+                    ifnull(i.level_percent,'') as level_percent,
+                    ifnull(i.ref_amount,'') as ref_amount,i.income_type,
                     DATE_FORMAT(i.created_at,'%d/%m/%Y') AS tran_date
                 FROM member_incomes i
                 LEFT JOIN members m ON i.ref_member_id=m.member_id
-                WHERE i.member_id = ". $request->user()->id;
+                WHERE income_type = 'Level Income' AND i.member_id = ". $request->user()->id;
 
             $records = DB::select($sql);
             $response['status'] = true;
@@ -327,7 +327,30 @@ class TranApiController extends Controller
             $response["data"]=$records;
             return response($response,200);
         } catch(Exception $ex){
-            $response = ['status' => false, 'message' => $e->getMessage()];
+            $response = ['status' => false, 'message' => $ex->getMessage()];
+            return response($response, 200);
+        }
+    }
+
+    public function GetTransactionsClub(Request $request){
+        try{
+            $sql = "SELECT cast(i.commission as char) as commission,ifnull(t.no_of_recepients,'') AS ref_id,
+                    '' AS ref_name,
+                    ifnull(i.club_percent,'') as level_percent,
+                    cast(t.turnover as char) as ref_amount,i.income_type,
+                    DATE_FORMAT(i.created_at,'%d/%m/%Y') AS tran_date
+                FROM member_incomes i
+                LEFT JOIN company_turnovers t ON i.turnover_id = t.id
+                LEFT JOIN members m ON i.ref_member_id=m.member_id
+                WHERE income_type = 'CLUB' AND i.member_id = ". $request->user()->id;
+
+            $records = DB::select($sql);
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["data"]=$records;
+            return response($response,200);
+        } catch(Exception $ex){
+            $response = ['status' => false, 'message' => $ex->getMessage()];
             return response($response, 200);
         }
     }
