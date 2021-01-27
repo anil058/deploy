@@ -149,7 +149,8 @@ class MiscApiController extends Controller
     }
 
     private function isTurnoverCalculated($tran_date){
-        $cnt = CompanyTurnover::where(DB::raw("turnover_type = 'DAILY' AND Date(created_at) = str_to_date($tran_date, '%d-%m-%Y')"))->count();
+        $tbl = CompanyTurnover::whereRaw(DB::raw("turnover_type = 'DAILY' AND Date(created_at) = str_to_date($tran_date, '%d-%m-%Y')"));
+        $cnt = $tbl->count();
         return ($cnt == 0) ? false : true;
     }
 
