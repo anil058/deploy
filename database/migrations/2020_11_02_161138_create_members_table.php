@@ -19,6 +19,7 @@ class CreateMembersTable extends Migration
             $table->bigInteger('temp_id')->references('id')->on('temp_members');
             $table->bigInteger('member_id')->unique()->unsigned();
             $table->bigInteger('parent_id')->unsigned();
+            $table->bigInteger('grand_parent_id')->unsigned();
             $table->string('unique_id')->unique()->index();
             $table->string('first_name')->index();
             $table->string('last_name')->index();
@@ -49,6 +50,7 @@ class CreateMembersTable extends Migration
             'temp_id' => 0,
             'member_id' => 0,
             'parent_id' => 0,
+            'grand_parent_id' => 0,
             'unique_id' => '000000',
             'first_name' => 'Mansha Real Rupees',
             'last_name' => '',

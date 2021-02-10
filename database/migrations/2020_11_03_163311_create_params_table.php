@@ -67,7 +67,20 @@ class CreateParamsTable extends Migration
             'long_text' => '',
             'bool_value' => false
         ));
-
+        DB::table('params')->insert(array(
+            'param' => 'LEVEL1_LEADERSHIP_INCOME',
+            'string_value' => '',
+            'int_value' => 5,
+            'long_text' => '',
+            'bool_value' => false
+        ));
+        DB::table('params')->insert(array(
+            'param' => 'LEVEL2_LEADERSHIP_INCOME',
+            'string_value' => '',
+            'int_value' => 3,
+            'long_text' => '',
+            'bool_value' => false
+        ));
 
 
     }

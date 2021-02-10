@@ -57,6 +57,8 @@ class MemberAPIController extends Controller
     private $TAX_PERCENT;
     private $MEMBER_COUNTER;
     private $MEMBERSHIP_FEE;
+    private $LEVEL1_LEADERSHIP_INCOME;
+    private $LEVEL2_LEADERSHIP_INCOME;
 
     //Memory Tables
     private $arrayParents = array();
@@ -314,15 +316,15 @@ class MemberAPIController extends Controller
 
        //Validate against TempMembers
        $tblTempMember = TempMember::where('id',$request->temp_id)->first();
-       $request->password = $tblTempMember->password;
-       $request->name = $tblTempMember->first_name;
-       $request->member_fee = $tblTempMember->membership_fee;
 
        //If Temp ID doesnot exist
        if($tblTempMember === null){
            $response = ['status' => false, 'message' => 'Invalid Temp ID'];
            return response($response, 200);
        }
+       $request->password = $tblTempMember->password;
+       $request->name = $tblTempMember->first_name;
+       $request->member_fee = $tblTempMember->membership_fee;
 
        //Validate against PaymentGateway table
        $tblPaymentGateway = PaymentGateway::where('temp_id', $request->temp_id)
@@ -504,6 +506,12 @@ class MemberAPIController extends Controller
                 case "CASHBACK_REWARD":
                     $this->CASHBACK_REWARD = $refTable->int_value;
                     break;
+                case "LEVEL1_LEADERSHIP_INCOME":
+                    $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
+                case "LEVEL2_LEADERSHIP_INCOME":
+                    $this->LEVEL2_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
                 default :
                 $this->ROYALTY_REQ_NUM = 0;
             }
@@ -564,10 +572,18 @@ class MemberAPIController extends Controller
             $request->jumboErrorMessage = "Temp ID not found";
             return false;
         }
+        $tblParentMember = Member::where('member_id', $request->parent_id)->first();
+        if ($tblParentMember === null){
+            $request->jumboErrorStatus = true;
+            $request->jumboErrorMessage = "Parent not found";
+            return false;
+        }
+
         $tblMember = new Member();
         $tblMember -> temp_id = $request->temp_id;
         $tblMember -> member_id = $request->member_id;
         $tblMember -> parent_id = $request->parent_id;
+        $tblMember -> grand_parent_id = $tblParentMember->parent_id;
         $tblMember -> unique_id = $this->newMemberCode();
         $tblMember -> first_name = $tblTempMember->first_name;
         $tblMember -> last_name = $tblTempMember->last_name;
@@ -617,15 +633,8 @@ class MemberAPIController extends Controller
      * Distribute Income according to refables
      */
     private function updateLevelIncomes(Request $request){
-        // $tblMembers = MemberMap::join('members', 'member_maps.member_id', '=', 'members.member_id')
-        //             ->where('member_maps.member_id', $request->member_id)
-        //             ->get(['members.*']);
-
-        $l_totalPercent = 0;
-        $l_l1Commission = 0;
-        $l_l2Commission = 0;
-        $l_level3Member_id = 0;
         $l_commission = 0;
+        $l_totalCommission = 0;
 
         //Level Income Calculation
         //======================================
@@ -635,20 +644,14 @@ class MemberAPIController extends Controller
             $level_ctr = $memberMap->level_ctr + 1;
             //Calculate Level Commission
             if($level_ctr < 13){
-                //Update Commission
                 $l_levelPercent = $this->getCommissionPercent($level_ctr);
-                $l_totalPercent += $l_levelPercent;
                 $l_commission = $request->member_fee * $l_levelPercent * 0.01;
-        
-                if($level_ctr == 1){
-                    $l_l1Commission += $l_commission * 5 * 0.01;
-                }
-                if($level_ctr == 2){
-                    $l_l2Commission += $l_commission * 3 * 0.01;
-                }
-                if($level_ctr == 3){
-                    $l_level3Member_id = $memberMap->member_id;
-                }
+                $l_tmpCommission1 = $l_commission * $this->LEVEL1_LEADERSHIP_INCOME * 0.01;
+                $l_tmpCommission2 = $l_commission * $this->LEVEL2_LEADERSHIP_INCOME * 0.01;
+                $l_totalCommission += $l_commission;
+                $l_totalCommission += $l_tmpCommission1;
+                $l_totalCommission += $l_tmpCommission2;
+                
                 $tblMemberIncome = new MemberIncome();
                 $tblMemberIncome->member_id = $memberMap->parent_id;
                 $tblMemberIncome->income_type = 'Level Income';
@@ -658,47 +661,43 @@ class MemberAPIController extends Controller
                 $tblMemberIncome->ref_amount = $request->member_fee;
                 $tblMemberIncome->amount = $l_commission;
                 $tblMemberIncome->save();
+
+                $tblCurrentParent = Member::where('member_id',$memberMap->parent_id)->first();
+
+                $tblMemberIncome = new MemberIncome();
+                $tblMemberIncome->member_id = $tblCurrentParent->parent_id;
+                $tblMemberIncome->income_type = 'Leadership Income1';
+                $tblMemberIncome->ref_member_id = $request->member_id;
+                $tblMemberIncome->direct_l1_percent = $this->LEVEL1_LEADERSHIP_INCOME;
+                $tblMemberIncome->commission =  $l_tmpCommission1;
+                $tblMemberIncome->ref_amount = $l_commission;
+                $tblMemberIncome->amount =  $l_tmpCommission1;
+                $tblMemberIncome->save();
+
+                $tblMemberIncome = new MemberIncome();
+                $tblMemberIncome->member_id = $tblCurrentParent->grand_parent_id;
+                $tblMemberIncome->income_type = 'Leadership Income2';
+                $tblMemberIncome->ref_member_id = $request->member_id;
+                $tblMemberIncome->direct_l2_percent = $this->LEVEL2_LEADERSHIP_INCOME;
+                $tblMemberIncome->commission =  $l_tmpCommission2;
+                $tblMemberIncome->ref_amount = $l_commission;
+                $tblMemberIncome->amount =  $l_tmpCommission2;
+                $tblMemberIncome->save();
             }
         };
 
-        //Direct Sponser Income Calculation
-        //===============================
-        //Calculate and Add a Record for Direct Income in Level 3
-        // In no one is at level 3 then add the amount to mansha
-        $l_level3Members = MemberMap::where('member_id', $l_level3Member_id)
-                    ->where('level_ctr', 1)
-                    ->get();
-        if($l_level3Members != null){
-            if($l_level3Members->count() ==5){
-                $tblMemberIncome = new MemberIncome();
-                $tblMemberIncome->member_id = $l_level3Member_id;
-                $tblMemberIncome->income_type = 'Direct Income';
-                $tblMemberIncome->ref_member_id = $request->member_id;
-                $tblMemberIncome->direct_l1_percent = 5;
-                $tblMemberIncome->direct_l2_percent = 3;
-                $l_commission = $request->member_fee * (100 - $l_totalPercent) * 0.01;
-                $tblMemberIncome->commission = $l_commission;
-                $tblMemberIncome->ref_amount = $request->member_fee;
-                $tblMemberIncome->amount = $l_l1Commission + $l_l2Commission;
-                $tblMemberIncome->save();                
-            }
-        }
-
         //Rest amount to be credited to Manshaa
-        $l_commission = $request->member_fee * (100 - $l_totalPercent) * 0.01;
-        if($l_commission > 0){
-            $l_leftovers = $l_commission - ($l_l1Commission + $l_l2Commission);
-            // if($l_leftovers > 0){
-            $tblMemberIncome = new MemberIncome();
-            $tblMemberIncome->member_id = 0;
-            $tblMemberIncome->income_type = 'Level Income';
-            $tblMemberIncome->ref_member_id = $request->member_id;
-            $tblMemberIncome->level_percent = (100 - $l_totalPercent);
-            $tblMemberIncome->commission = $l_commission;
-            $tblMemberIncome->ref_amount = $request->member_fee;
-            $tblMemberIncome->amount = $l_leftovers;
-            $tblMemberIncome->save();
-        }
+        $l_leftovers = $request->member_fee - $l_totalCommission;
+        $tblMemberIncome = new MemberIncome();
+        $tblMemberIncome->member_id = 0;
+        $tblMemberIncome->income_type = 'Company Income';
+        $tblMemberIncome->ref_member_id = $request->member_id;
+        // $tblMemberIncome->level_percent = (100 - $l_totalPercent);
+        $tblMemberIncome->commission = $l_leftovers;
+        $tblMemberIncome->ref_amount = $request->member_fee;
+        $tblMemberIncome->amount = $l_leftovers;
+        $tblMemberIncome->save();
+       
     }
 
     /**
