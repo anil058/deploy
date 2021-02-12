@@ -8,6 +8,8 @@ use App\Models\RechargeRequest;
 use App\Models\Param;
 use App\Models\Member;
 use App\Http\Controllers\Api\MiscApiController;
+use App\Models\MemberWallet;
+use App\Models\RechargePointRegister;
 use Exception;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
@@ -17,6 +19,10 @@ use Carbon\Carbon;
 
 class RechargeController extends Controller
 {
+    private $WELCOME_CONTRIBUTION_PERCENT = 2;
+    private $NON_REDEEMABLE_CONTRIBUTION_PERCENT = 98;
+    private $CASHBACK_CONTRIBUTION_PERCENT = 2;
+
     private $rechargeUrl = 'https://api.pay2all.in/v1/payment/recharge';
 
     public function __construct()
@@ -61,6 +67,92 @@ class RechargeController extends Controller
         }
     }
 
+    // public function RechargeMobile(Request $request){
+    //     $validator = Validator::make($request->all(), [
+    //         'provider_id' => 'required|numeric',
+    //         'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+    //         'amount' => 'required|numeric:max:1000'
+    //     ]);
+         
+    //     if ($validator->fails()) {
+    //         $errors = $validator->errors()->first();
+    //         $response = ['status' => false, 'message' => $errors];
+    //         return response($response, 200);
+    //     }
+
+    //     //Check if there is an existing user with same mobile no
+    //     // $tblMember = Member::where('mobile_no', $request->mobile_no)->first();
+    //     $id = $request->user()->id;
+
+    //     try{
+    //         $token1 = new MiscApiController();
+    //         $token = $token1->updateRechargeToken();
+
+    //         $client_id = $this->AddRechargeRequest($request);
+    //         if($client_id == 0){
+    //             $response = ['status' => false, 'message' => 'Unable to add request data'];
+    //             return response($response, 200);
+    //         }
+
+    //         $request_param = [
+    //             'number'        => $request->mobile_no,
+    //             'amount'        => $request->amount,
+    //             'provider_id'   => $request->provider_id,
+    //             'client_id'     => $client_id
+    //         ];
+    //         $request_data = json_encode($request_param);
+    //         $client = new Client();
+    //         $response = $client->request(
+    //             'POST',
+    //             $this->rechargeUrl,
+    //             ['headers' => 
+    //                 [
+    //                     'Accept' => "application/json",
+    //                     'Authorization' => "Bearer {$token}"
+    //                 ],
+    //                 'form_params' => [
+    //                     'number' => $request->mobile_no,
+    //                     'amount' => $request->amount,
+    //                     'provider_id' => $request->provider_id,
+    //                     'client_id' => $client_id,
+    //                 ]
+                    
+    //             ]
+    //         );
+
+    //         if($response->getStatusCode() == 200 ){
+    //             $ret = $response->getBody()->getContents();
+    //             $json = json_decode($ret, true);
+    //             $flag = true;
+    //             $successMessage = 'Successfully Recharged';
+    //             if($json['status_id'] == 2){
+    //                 $flag = false;
+    //                 $successMessage = $json['message'];
+    //             }
+
+    //             $tblRechargeRequest = RechargeRequest::find($client_id);
+    //             $tblRechargeRequest->status_id = $json['status_id'];
+    //             $tblRechargeRequest->message = $json['message'];
+    //             $tblRechargeRequest->utr = $json['utr'];
+    //             $tblRechargeRequest->report_id = $json['report_id'];
+    //             $tblRechargeRequest->orderid = $json['orderid'];
+    //             $tblRechargeRequest->verified = 1;
+    //             $tblRechargeRequest->save();
+    //             $response = [
+    //                 'status' => $flag, 
+    //                 'message' =>  $successMessage,
+    //                 'status_id' => $json['status_id'] 
+    //             ];
+    //             return response($response, 200);
+    //         }
+    //         $response = ['status' => false, 'message' => 'Error connecting recharge server'];
+    //         return response($response, 200);
+    //     }catch(Exception $e){
+    //         $response = ['status' => false, 'message' => $e->getMessage()];
+    //         return response($response, 200);
+    //     }
+    // }
+
     public function RechargeMobile(Request $request){
         $validator = Validator::make($request->all(), [
             'provider_id' => 'required|numeric',
@@ -77,19 +169,45 @@ class RechargeController extends Controller
         //Check if there is an existing user with same mobile no
         // $tblMember = Member::where('mobile_no', $request->mobile_no)->first();
         $id = $request->user()->id;
+        $tblMemberWallet = MemberWallet::find($id);
+        $tableWelcomeAmt = $tblMemberWallet->welcome_amt;
+        $tableNonRedeemable = $tblMemberWallet->non_redeemable;
 
+        //Calculation
+        
+        $amt = $request->amount;
+        $welcome_deduction = round($amt * $this->WELCOME_CONTRIBUTION_PERCENT * 0.01);
+        if($tableWelcomeAmt < $welcome_deduction){
+            $non_redeemable_deduction = $amt;
+            $welcome_deduction = 0;
+        } else {
+            $non_redeemable_deduction = $amt - $welcome_deduction;
+        }
+        
+        if($non_redeemable_deduction >  $tableNonRedeemable){
+            $response = ['status' => false, 'message' => 'Insufficient Balance'];
+            return response($response, 200);
+        }
+
+        $cashback_addition = round($amt * $this->CASHBACK_CONTRIBUTION_PERCENT * 0.01);
+        $total_nr_deduction = $non_redeemable_deduction + $cashback_addition;
+        $mobileNo = substr($request->mobile_no, -10);
+                    
+        DB::beginTransaction();
         try{
             $token1 = new MiscApiController();
             $token = $token1->updateRechargeToken();
 
             $client_id = $this->AddRechargeRequest($request);
             if($client_id == 0){
+                DB::rollBack();
                 $response = ['status' => false, 'message' => 'Unable to add request data'];
                 return response($response, 200);
             }
 
+            //Recharge to pay2all
             $request_param = [
-                'number'        => $request->number,
+                'number'        => $mobileNo,
                 'amount'        => $request->amount,
                 'provider_id'   => $request->provider_id,
                 'client_id'     => $client_id
@@ -105,7 +223,7 @@ class RechargeController extends Controller
                         'Authorization' => "Bearer {$token}"
                     ],
                     'form_params' => [
-                        'number' => $request->mobile_no,
+                        'number' => $mobileNo,
                         'amount' => $request->amount,
                         'provider_id' => $request->provider_id,
                         'client_id' => $client_id,
@@ -120,29 +238,64 @@ class RechargeController extends Controller
                 $flag = true;
                 $successMessage = 'Successfully Recharged';
                 if($json['status_id'] == 2){
-                    $flag = false;
-                    $successMessage = 'Could not recharge';
+                    // $flag = false;
+                    DB::rollBack();
+                    $successMessage = $json['message'];
+                    $response = ['status' => false, 'message' => $successMessage];
+                    return response($response, 200);
                 }
-
-                $tblRechargeRequest = RechargeRequest::find($client_id);
-                $tblRechargeRequest->status_id = $json['status_id'];
-                $tblRechargeRequest->message = $json['message'];
-                $tblRechargeRequest->utr = $json['utr'];
-                $tblRechargeRequest->report_id = $json['report_id'];
-                $tblRechargeRequest->orderid = $json['orderid'];
-                $tblRechargeRequest->verified = 1;
-                $tblRechargeRequest->save();
-                $response = [
-                    'status' => $flag, 
-                    'message' =>  $successMessage,
-                    'status_id' => $json['status_id'] 
-                ];
+            } else {
+                 DB::rollBack();
+                $response = ['status' => false, 'message' => "Could not Connect to the Server"];
                 return response($response, 200);
             }
-            $response = ['status' => false, 'message' => 'Error connecting recharge server'];
-            return response($response, 200);
+
+            //Update Recharge Request
+            $tblRechargeRequest = RechargeRequest::find($client_id);
+            $tblRechargeRequest->status_id = $json['status_id'];
+            $tblRechargeRequest->message = $json['message'];
+            $tblRechargeRequest->utr = $json['utr'];
+            $tblRechargeRequest->report_id = $json['report_id'];
+            $tblRechargeRequest->orderid = $json['orderid'];
+            $tblRechargeRequest->verified = 1;
+            $tblRechargeRequest->save();
+
+
+            //Update non redeemable wallet
+            $tblMemberWallet->non_redeemable -= $non_redeemable_deduction;
+            $tblMemberWallet->welcome_amt -= $welcome_deduction;
+            $tblMemberWallet->save();
+
+            //CONSUMED
+            $tblRechargePointRegister = new RechargePointRegister();
+            $tblRechargePointRegister->member_id = $id;
+            $tblRechargePointRegister->ref_member_id =  $id;
+            $tblRechargePointRegister->tran_date = Carbon::now();
+            $tblRechargePointRegister->recharge_id = $client_id;
+            $tblRechargePointRegister->recharge_points_consumed = $non_redeemable_deduction;
+            $tblRechargePointRegister->balance_points =  $tableNonRedeemable - $non_redeemable_deduction;
+            $tblRechargePointRegister->tran_type = "RECHARGE" ;//RECHARGE,CASHBACK
+            $tblRechargePointRegister->remarks = "WALLET USED";
+            $tblRechargePointRegister->save();
+
+            //CASHBACK
+            $tblRechargePointRegister = new RechargePointRegister();
+            $tblRechargePointRegister->member_id = $id;
+            $tblRechargePointRegister->ref_member_id = $id;
+            $tblRechargePointRegister->tran_date = Carbon::now();
+            $tblRechargePointRegister->recharge_id = $client_id;
+            $tblRechargePointRegister->recharge_points_added = $cashback_addition;
+            $tblRechargePointRegister->balance_points = $tableNonRedeemable + $cashback_addition;
+            $tblRechargePointRegister->tran_type = "CASHBACK" ;//RECHARGE,CASHBACK
+            $tblRechargePointRegister->remarks = "WALLET CASHBACK";
+            $tblRechargePointRegister->save();
+
+            DB::commit();
+           $response = ['status' => true, 'message' => 'Recharge Successful'];
+           return response($response, 200);
         }catch(Exception $e){
-            $response = ['status' => false, 'message' => $e->getMessage()];
+            DB::rollBack();
+            $response = ['status' => false, 'message' => "Recharge unsuccessful"];
             return response($response, 200);
         }
     }
@@ -150,13 +303,14 @@ class RechargeController extends Controller
     public function GetNonRedeemableWallet(Request $request){
         try{
             $sql = "SELECT m.unique_id, 
-                            CONCAT(m.first_name,' ',m.last_name) AS member_name,
+                            q.mobile_no AS member_name,r.tran_type,
                             DATE_FORMAT(r.created_at,'%d/%m/%Y') AS TranDate,
                             ifnull(r.recharge_points_added,0) as recharge_points_added,ifnull(r.recharge_points_consumed,0) as recharge_points_consumed,
                             r.balance_points
                         FROM recharge_point_registers r
+                        LEFT JOIN recharge_requests q ON r.recharge_id=q.id
                         INNER JOIN members m ON r.ref_member_id=m.member_id
-                        WHERE r.member_id = 1"; //.$request->user()->id;
+                        WHERE r.member_id = ".$request->user()->id;
 
              $records = DB::select($sql);
              $response['status'] = true;

@@ -12,6 +12,7 @@ use App\Models\PaymentGateway;
 use App\Models\Param;
 use App\Models\MemberDeposit;
 use App\Models\MemberMap;
+use App\Models\MemberWallet;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -182,6 +183,10 @@ class TranApiController extends Controller
             $tblMemberDeposits->deposit_type = 'TOPUP';
             $tblMemberDeposits->save();
 
+            $tblMemberWallet = MemberWallet::find( $request->user()->id);
+            $tblMemberWallet->non_redeemable = $tblPaymentGateway->amount;
+            $tblMemberWallet->save();
+            
             DB::commit();
             $response = ['status' => true, 'message' => 'Successfully Added Money'];
             return response($response, 200);
@@ -314,12 +319,12 @@ class TranApiController extends Controller
             //                 ->get();
             $sql = "SELECT ifnull(i.commission,'') as commission,m.unique_id AS ref_id,
                     concat(m.first_name,' ',m.last_name) AS ref_name,
-                    ifnull(i.level_percent,'') as level_percent,
+                    cast(ifnull(level_percent,0)+ifnull(direct_l1_percent,0)+ifnull(direct_l2_percent,0) AS CHAR) as level_percent,
                     ifnull(i.ref_amount,'') as ref_amount,i.income_type,
                     DATE_FORMAT(i.created_at,'%d/%m/%Y') AS tran_date
                 FROM member_incomes i
                 LEFT JOIN members m ON i.ref_member_id=m.member_id
-                WHERE income_type = 'Level Income' AND i.member_id = ". $request->user()->id;
+                WHERE income_type IN ('Level Income','Leadership Income1','Leadership Income2') AND i.member_id = ". $request->user()->id;
 
             $records = DB::select($sql);
             $response['status'] = true;

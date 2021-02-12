@@ -20,6 +20,7 @@ use App\Models\MemberIncome;
 use App\Models\MemberUser;
 use App\Models\MemberMap;
 use App\Models\MemberRewards;
+use App\Models\MemberWallet;
 use App\Models\RefTable;
 use App\Models\Otp;
 use App\Models\Param;
@@ -53,7 +54,7 @@ class MemberAPIController extends Controller
     // private $arrayRefTable = array();
 
     //Paremters
-    private $CASHBACK_REWARD;
+    private $MEMBERSHIP_POINTS;
     private $TAX_PERCENT;
     private $MEMBER_COUNTER;
     private $MEMBERSHIP_FEE;
@@ -402,7 +403,7 @@ class MemberAPIController extends Controller
            // $this->updateCurrentLevel($request);
            $this->updateClub();
            $this->updateRewards($request);
-           $this->addCashbackReward($request);
+           $this->addRechargePoints($request);
            //$this->updateLevelAchievers();
 
            //When confirm, updated closed flag
@@ -504,7 +505,7 @@ class MemberAPIController extends Controller
                     $this->TAX_PERCENT = $refTable->string_value;
                     break;
                 case "CASHBACK_REWARD":
-                    $this->CASHBACK_REWARD = $refTable->int_value;
+                    $this->MEMBERSHIP_POINTS = $refTable->int_value;
                     break;
                 case "LEVEL1_LEADERSHIP_INCOME":
                     $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
@@ -591,14 +592,13 @@ class MemberAPIController extends Controller
         $tblMember -> email = $tblTempMember->email;
         $tblMember -> referal_code = getUniqueReferalCode();
         $tblMember -> mobile_no = $request->mobile_no;
-        $tblMember -> recharge_points = $this->CASHBACK_REWARD + $request->member_fee;
+        $tblMember -> recharge_points = $this->MEMBERSHIP_POINTS;
         $tblMember -> image = 'dummy.jpg';
         $tblMember -> designation_id = 1;
         $tblMember -> current_level = 0;
         $tblMember -> joining_date = Carbon::now();
         $tblMember -> save();
         $request -> unique_id = $tblMember -> unique_id;
-
     }
 
     /**
@@ -664,25 +664,28 @@ class MemberAPIController extends Controller
 
                 $tblCurrentParent = Member::where('member_id',$memberMap->parent_id)->first();
 
-                $tblMemberIncome = new MemberIncome();
-                $tblMemberIncome->member_id = $tblCurrentParent->parent_id;
-                $tblMemberIncome->income_type = 'Leadership Income1';
-                $tblMemberIncome->ref_member_id = $request->member_id;
-                $tblMemberIncome->direct_l1_percent = $this->LEVEL1_LEADERSHIP_INCOME;
-                $tblMemberIncome->commission =  $l_tmpCommission1;
-                $tblMemberIncome->ref_amount = $l_commission;
-                $tblMemberIncome->amount =  $l_tmpCommission1;
-                $tblMemberIncome->save();
-
-                $tblMemberIncome = new MemberIncome();
-                $tblMemberIncome->member_id = $tblCurrentParent->grand_parent_id;
-                $tblMemberIncome->income_type = 'Leadership Income2';
-                $tblMemberIncome->ref_member_id = $request->member_id;
-                $tblMemberIncome->direct_l2_percent = $this->LEVEL2_LEADERSHIP_INCOME;
-                $tblMemberIncome->commission =  $l_tmpCommission2;
-                $tblMemberIncome->ref_amount = $l_commission;
-                $tblMemberIncome->amount =  $l_tmpCommission2;
-                $tblMemberIncome->save();
+                if($l_tmpCommission1>0){
+                    $tblMemberIncome = new MemberIncome();
+                    $tblMemberIncome->member_id = $tblCurrentParent->parent_id;
+                    $tblMemberIncome->income_type = 'Leadership Income1';
+                    $tblMemberIncome->ref_member_id = $request->member_id;
+                    $tblMemberIncome->direct_l1_percent = $this->LEVEL1_LEADERSHIP_INCOME;
+                    $tblMemberIncome->commission =  $l_tmpCommission1;
+                    $tblMemberIncome->ref_amount = $l_commission;
+                    $tblMemberIncome->amount =  $l_tmpCommission1;
+                    $tblMemberIncome->save();
+                }
+                if($l_tmpCommission2 > 0){
+                    $tblMemberIncome = new MemberIncome();
+                    $tblMemberIncome->member_id = $tblCurrentParent->grand_parent_id;
+                    $tblMemberIncome->income_type = 'Leadership Income2';
+                    $tblMemberIncome->ref_member_id = $request->member_id;
+                    $tblMemberIncome->direct_l2_percent = $this->LEVEL2_LEADERSHIP_INCOME;
+                    $tblMemberIncome->commission =  $l_tmpCommission2;
+                    $tblMemberIncome->ref_amount = $l_commission;
+                    $tblMemberIncome->amount =  $l_tmpCommission2;
+                    $tblMemberIncome->save();
+                }
             }
         };
 
@@ -1004,24 +1007,33 @@ class MemberAPIController extends Controller
     /**
      ************************************************************* called by updatePaymentStatus()
      */
-    private function addCashbackReward($request){
-        $tbl = new RechargePointRegister();
-        $tbl->member_id = $request->member_id;
-        $tbl->ref_member_id = $request->member_id;
-        $tbl->payment_id = $request->payment_int_id;
-        $tbl->tran_date = date('Y-m-d H:i:s');
-        $tbl->recharge_points_added = $request->member_fee;
-        $tbl->balance_points +=$request->member_fee;
-        $tbl->save();
+    private function addRechargePoints($request){
+        // $tbl = new RechargePointRegister();
+        // $tbl->member_id = $request->member_id;
+        // $tbl->ref_member_id = $request->member_id;
+        // $tbl->payment_id = $request->payment_int_id;
+        // $tbl->tran_date = date('Y-m-d H:i:s');
+        // $tbl->recharge_points_added = $request->member_fee;
+        // $tbl->balance_points +=$request->member_fee;
+        // $tbl->save();
 
         $tbl = new RechargePointRegister();
         $tbl->member_id = $request->member_id;
         $tbl->ref_member_id = $request->member_id;
         $tbl->payment_id = $request->payment_int_id;
+        $tbl->tran_type = 'MEMBERSHIP_BONUS';
         $tbl->tran_date = date('Y-m-d H:i:s');
-        $tbl->recharge_points_added = $this->CASHBACK_REWARD;
-        $tbl->balance_points += $this->CASHBACK_REWARD;
+        $tbl->recharge_points_added = $this->MEMBERSHIP_POINTS;
+        $tbl->balance_points += $this->MEMBERSHIP_POINTS;
         $tbl->save();
+
+        //Update Member Wallet
+        $tbl1 = new MemberWallet();
+        $tbl1->member_id = $request->member_id;
+        $tbl1->welcome_amt = $this->MEMBERSHIP_FEE;
+        $tbl1->redeemable_amt = 0;
+        $tbl1->non_redeemable = $this->MEMBERSHIP_POINTS;
+        $tbl1->save();
     }    
 
      /**
