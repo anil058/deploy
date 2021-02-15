@@ -6,6 +6,7 @@ use App\Http\Controllers\Api;
 use App\Http\Controllers\Api\MemberAPIController;
 use App\Http\Controllers\Api\TranApiController;
 use App\Http\Controllers\Api\MiscApiController;
+use App\Http\Controllers\Api\QueryAPIController;
 use App\Http\Controllers\Api\RechargeController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Auth\ApiAuthController;
@@ -63,6 +64,7 @@ Route::post('/generateotp', [ApiAuthController::class,'generateOTP'])->middlewar
 Route::post('/validateotp', [ApiAuthController::class,'validateOTP'])->middleware('api.key');
 
 Route::post('/usermembers', [TranApiController::class,'GetUserMembers'])->middleware('api.key');
+
 Route::post('/memberincomes', [TranApiController::class,'GetTransactionsRedeemable'])->middleware('api.key');
 Route::post('/clubincomes', [TranApiController::class,'GetTransactionsClub'])->middleware('api.key');
 Route::post('/reimbursments', [TranApiController::class,'GetTransactions'])->middleware('api.key');
@@ -84,6 +86,17 @@ Route::post('/saveuseridfrontimage', [UserImageController::class,'saveUserIDFron
 Route::post('/saveuseridbackimage', [UserImageController::class,'saveUserIDBackImage'])->middleware('api.key');
 
 Route::post('/calculatedailyclubincome', [MiscApiController::class,'calculateClubIncome']);
+
+
+//Query Controllers
+Route::post('/redeemableincomequery', [QueryAPIController::class,'GetRedeemableIncomeQuery'])->middleware('api.key');
+Route::post('/clubincomequery', [QueryAPIController::class,'GetClubIncomeQuery'])->middleware('api.key');
+Route::post('/ledershipincomequery', [QueryAPIController::class,'GetLeadershipIncomeQuery'])->middleware('api.key');
+Route::post('/levelincomequery', [QueryAPIController::class,'GetLevelIncomeQuery'])->middleware('api.key');
+
+Route::post('/nonredeemableincomequery', [QueryAPIController::class,'GetNonRedeemableIncomeQuery'])->middleware('api.key');
+Route::post('/transferinquery', [QueryAPIController::class,'GetTransferInQuery'])->middleware('api.key');
+Route::post('/transferoutquery', [QueryAPIController::class,'GetTransferOutQuery'])->middleware('api.key');
 
 
 

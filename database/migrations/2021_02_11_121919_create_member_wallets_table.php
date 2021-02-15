@@ -16,9 +16,15 @@ class CreateMemberWalletsTable extends Migration
         Schema::create('member_wallets', function (Blueprint $table) {
             $table->id();
             $table->bigInteger('member_id')->unique()->unsigned();
+            $table->integer('total_members');
             $table->decimal('welcome_amt');
             $table->decimal('redeemable_amt');
             $table->decimal('non_redeemable');
+            $table->decimal('level_income');
+            $table->decimal('leadership_income');
+            $table->decimal('club_income');
+            $table->decimal('transferin_amount');
+            $table->decimal('transferout_amount');
             $table->timestamps();
         });
     }

@@ -290,6 +290,10 @@ class RechargeController extends Controller
             $tblRechargePointRegister->remarks = "WALLET CASHBACK";
             $tblRechargePointRegister->save();
 
+            $tbl_MemberWallet = MemberWallet::where('member_id', $id)->first();
+            $tbl_MemberWallet->non_redeemable -=  $non_redeemable_deduction;
+            $tbl_MemberWallet->save();
+
             DB::commit();
            $response = ['status' => true, 'message' => 'Recharge Successful'];
            return response($response, 200);

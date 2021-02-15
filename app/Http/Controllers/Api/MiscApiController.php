@@ -9,6 +9,8 @@ use App\Models\RechargeProvider;
 use App\Models\RechargeService;
 use App\Models\Member;
 use App\Models\MemberIncome;
+use App\Models\MemberWallet;
+
 use Exception;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
@@ -206,6 +208,11 @@ class MiscApiController extends Controller
                 $tbl->commission = $oneUnit;
                 $tbl->amount = $oneUnit;
                 $tbl->save();
+
+                $tbl_MemberWallet = MemberWallet::where('member_id', $member->member_id)->first();
+                $tbl_MemberWallet->redeemable_amt +=  $oneUnit;
+                $tbl_MemberWallet->club_income +=  $oneUnit;
+                $tbl_MemberWallet->save();
             }
 
             //Silver Calculation
@@ -223,6 +230,11 @@ class MiscApiController extends Controller
                 $tbl->commission = $clubAmount;
                 $tbl->amount = $clubAmount;
                 $tbl->save();
+
+                $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
+                $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
+                $tbl_MemberWallet->club_income +=  $clubAmount;
+                $tbl_MemberWallet->save();
             }
 
             //Gold Calculation
@@ -240,6 +252,11 @@ class MiscApiController extends Controller
                 $tbl->commission = $clubAmount;
                 $tbl->amount = $clubAmount;
                 $tbl->save();
+
+                $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
+                $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
+                $tbl_MemberWallet->club_income +=  $clubAmount;
+                $tbl_MemberWallet->save();
             }
 
              //Diamond Calculation
@@ -257,6 +274,11 @@ class MiscApiController extends Controller
                 $tbl->commission = $clubAmount;
                 $tbl->amount = $clubAmount;
                 $tbl->save();
+
+                $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
+                $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
+                $tbl_MemberWallet->club_income +=  $clubAmount;
+                $tbl_MemberWallet->save();
             }
             DB::commit();
             $response = ['status' => true, 'message' => 'Successfully calculated Club Income'];

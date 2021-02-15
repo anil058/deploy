@@ -61,6 +61,12 @@ class MemberAPIController extends Controller
     private $LEVEL1_LEADERSHIP_INCOME;
     private $LEVEL2_LEADERSHIP_INCOME;
 
+    private $TOTAL_REDEEMABLE_AMOUNT = 0;
+    private $TOTAL_NONREDEEMABLE_AMOUNT = 0;
+    private $TOTAL_CLUB_INCOME = 0;
+    private $TOTAL_LEADERSHIP_INCOME = 0;
+    private $TOTAL_LEVEL_INCOME = 0;
+  
     //Memory Tables
     private $arrayParents = array();
     private $arrayLevelMaster = array();
@@ -409,6 +415,7 @@ class MemberAPIController extends Controller
            //When confirm, updated closed flag
            $tblPaymentGateway->member_id = $request->member_id;
            $tblPaymentGateway->closed =true;
+           $this->updateMemberWallet($request->member_id);
            $tblPaymentGateway->save();
            DB::commit();
            $response = ['status' => true, 'message' => 'Member Created Successfully'];
@@ -651,7 +658,7 @@ class MemberAPIController extends Controller
                 $l_totalCommission += $l_commission;
                 $l_totalCommission += $l_tmpCommission1;
                 $l_totalCommission += $l_tmpCommission2;
-                
+
                 $tblMemberIncome = new MemberIncome();
                 $tblMemberIncome->member_id = $memberMap->parent_id;
                 $tblMemberIncome->income_type = 'Level Income';
@@ -686,6 +693,11 @@ class MemberAPIController extends Controller
                     $tblMemberIncome->amount =  $l_tmpCommission2;
                     $tblMemberIncome->save();
                 }
+
+                $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
+                $tbl_MemberWallet->leadership_income +=  $l_tmpCommission1 + $l_tmpCommission2;
+                $tbl_MemberWallet->level_income +=  $l_commission;
+                $tbl_MemberWallet->save();
             }
         };
 
@@ -700,7 +712,6 @@ class MemberAPIController extends Controller
         $tblMemberIncome->ref_amount = $request->member_fee;
         $tblMemberIncome->amount = $l_leftovers;
         $tblMemberIncome->save();
-       
     }
 
     /**
@@ -1026,15 +1037,22 @@ class MemberAPIController extends Controller
         $tbl->recharge_points_added = $this->MEMBERSHIP_POINTS;
         $tbl->balance_points += $this->MEMBERSHIP_POINTS;
         $tbl->save();
+    }    
 
-        //Update Member Wallet
+    private function updateMemberWallet($member_id){
         $tbl1 = new MemberWallet();
-        $tbl1->member_id = $request->member_id;
+        $tbl1->member_id = $member_id;
+        $tbl1->total_members = 0;
         $tbl1->welcome_amt = $this->MEMBERSHIP_FEE;
         $tbl1->redeemable_amt = 0;
         $tbl1->non_redeemable = $this->MEMBERSHIP_POINTS;
+        $tbl1->level_income = 0;
+        $tbl1->leadership_income = 0;
+        $tbl1->club_income = 0;
+        $tbl1->transferin_amount = 0;
+        $tbl1->transferout_amount = 0;
         $tbl1->save();
-    }    
+    }
 
      /**
      ************************************************************* called by updateClub()
