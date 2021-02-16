@@ -370,29 +370,27 @@ class TranApiController extends Controller
             //     count(m.member_id) AS TotalTeamSize,
             //     SUM(if((m.joining_date between date_sub(now(),INTERVAL 1 WEEK) and now()),1,0)) AS week_members
             // FROM members m
-            // INNER JOIN member_maps p ON m.member_id=p.parent_id
-            // WHERE p.parent_id=".$request->user()->id." GROUP BY m.referal_code,m.unique_id";
+            // LEFT JOIN member_maps p ON m.member_id=p.parent_id
+            // WHERE m.member_id=".$request->user()->id." GROUP BY m.referal_code,m.unique_id";
+            // $records = DB::select($sql);
 
-            $sql = "SELECT m.referal_code,
-                m.unique_id,
-                date_format(MAX(m.joining_date),'%d/%m/%Y') AS last_joining_date,
-                count(m.member_id) AS TotalTeamSize,
-                SUM(if((m.joining_date between date_sub(now(),INTERVAL 1 WEEK) and now()),1,0)) AS week_members
-            FROM members m
-            LEFT JOIN member_maps p ON m.member_id=p.parent_id
-            WHERE m.member_id=".$request->user()->id." GROUP BY m.referal_code,m.unique_id";
+            $member_id = $request->user()->id;
+            // $l_memberCount = MemberMap::where('parent_id', $member_id)->count();
+            $tblMember = Member::where('member_id', $member_id)->first();
+            $tblMemberWallet = MemberWallet::where('member_id',$member_id)->first();
 
-            $records = DB::select($sql);
             $response['status'] = true;
             $response['message'] = 'Success';
-            $response["referal_code"]=$records[0]->referal_code;
-            $response["unique_id"]=$records[0]->unique_id;
-            $response["last_joining_date"]=$records[0]->last_joining_date;
-            $response["TotalTeamSize"]=$records[0]->TotalTeamSize;
-            $response["week_members"]=$records[0]->week_members;
-            $response["last_payment_transfer"]=0;
-            $response["total_payment_transfer"]=0;
-
+            $response["referal_code"] = strval($tblMember->referal_code);
+            $response["unique_id"] = strval($tblMember->unique_id);
+            $response["total_members"] = strval($tblMemberWallet->total_members);
+            $response["redeemable_amt"] = strval($tblMemberWallet->redeemable_amt);
+            $response["non_redeemable"] = strval($tblMemberWallet->non_redeemable);
+            $response["level_income"] = strval($tblMemberWallet->level_income);
+            $response["leadership_income"] = strval($tblMemberWallet->leadership_income);
+            $response["club_income"] = strval($tblMemberWallet->club_income);
+            $response["transferin_amount"] = strval($tblMemberWallet->transferin_amount);
+            $response["transferout_amount"] = strval($tblMemberWallet->transferout_amount);
             return response($response,200);
         } catch(Exception $e){
             $response = ['status' => false, 'message' => $e->getMessage()];

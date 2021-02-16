@@ -694,10 +694,12 @@ class MemberAPIController extends Controller
                     $tblMemberIncome->save();
                 }
 
-                $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
-                $tbl_MemberWallet->leadership_income +=  $l_tmpCommission1 + $l_tmpCommission2;
-                $tbl_MemberWallet->level_income +=  $l_commission;
-                $tbl_MemberWallet->save();
+                if($tblCurrentParent->parent_id>0){
+                    $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
+                    $tbl_MemberWallet->leadership_income +=  $l_tmpCommission1 + $l_tmpCommission2;
+                    $tbl_MemberWallet->level_income +=  $l_commission;
+                    $tbl_MemberWallet->save();
+                }
             }
         };
 
