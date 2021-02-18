@@ -28,7 +28,9 @@ class CreateMemberIncomesTable extends Migration
             $table->float('stto')->nullable();
             $table->decimal('ref_amount');
             $table->float('commission')->nullable();
-            $table->float('amount');
+            $table->float('deduction')->nullable();
+            $table->float('balance');
+            $table->string('remarks')->nullable();
             $table->timestamps();
         });
     }

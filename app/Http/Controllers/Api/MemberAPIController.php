@@ -60,13 +60,8 @@ class MemberAPIController extends Controller
     private $MEMBERSHIP_FEE;
     private $LEVEL1_LEADERSHIP_INCOME;
     private $LEVEL2_LEADERSHIP_INCOME;
+    private $ALLOW_COMPANY_REFERAL_CODE = false;
 
-    private $TOTAL_REDEEMABLE_AMOUNT = 0;
-    private $TOTAL_NONREDEEMABLE_AMOUNT = 0;
-    private $TOTAL_CLUB_INCOME = 0;
-    private $TOTAL_LEADERSHIP_INCOME = 0;
-    private $TOTAL_LEVEL_INCOME = 0;
-  
     //Memory Tables
     private $arrayParents = array();
     private $arrayLevelMaster = array();
@@ -77,6 +72,53 @@ class MemberAPIController extends Controller
     public function __construct()
     {
         $this->middleware('auth:api')->except(['createTempUser','updatePaymentStatus','getRefererName']);
+    }
+
+    /**
+     * Extract and Fill arrayParents for current member
+     * ------------------------------------------------------------------> Masters/ References
+     */
+    private function populateClubMaster(){
+        $tblTemp = ClubMaster::all();
+        foreach ($tblTemp as $rec){
+            $this->arrayClubMaster[] = $rec;
+        }
+    }
+
+    /**
+     * Extract and Fill Parameters from params
+     * ------------------------------------------------------------------> Masters/ References
+     */
+    //
+    private function populateParams(){
+        $tblParamTable = Param::all();
+        foreach ($tblParamTable as $refTable){
+            switch($refTable->param){
+                case "MEMBERSHIP_FEE":
+                    $this->MEMBERSHIP_FEE = $refTable->int_value;
+                    break;
+                case "TAX_PERCENT":
+                    $this->TAX_PERCENT = $refTable->string_value;
+                    break;
+                case "CASHBACK_REWARD":
+                    $this->MEMBERSHIP_POINTS = $refTable->int_value;
+                    break;
+                case "LEVEL1_LEADERSHIP_INCOME":
+                    $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
+                case "LEVEL2_LEADERSHIP_INCOME":
+                    $this->LEVEL2_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
+                case "ALLOW_COMPANY_REFERAL_CODE":
+                    $this->ALLOW_COMPANY_REFERAL_CODE = ($refTable->bool_value == 0) ? false : true;
+                    break;
+                case "ALLOW_NEW_MEMBERS":
+                    $this->ALLOW_NEW_MEMBERS = ($refTable->bool_value == 0) ? false : true;
+                    break;
+                default :
+                $this->ROYALTY_REQ_NUM = 0;
+            }
+        }
     }
 
      /**
@@ -120,6 +162,21 @@ class MemberAPIController extends Controller
             }
 
             $this->populateParams();
+
+            if ($this->ALLOW_NEW_MEMBERS == false){
+                $response = ['status' => false, 'message' => 'System Error! Please try again after sometime'];
+                return response($response, 200);
+            }
+
+//
+
+            if ($request->referal_code == '0000000000'){
+                if ($this->ALLOW_COMPANY_REFERAL_CODE == false){
+                    $response = ['status' => false, 'message' => 'Company Referal Code has been prohibited'];
+                    return response($response, 200);
+                }
+            }
+            // $this->populateParams();
     
             //Check if referal code is valid
             // $tblReferal = Referal::where('referal_code', $request->referal_code)
@@ -485,46 +542,7 @@ class MemberAPIController extends Controller
         }
     }
     
-    /**
-     * Extract and Fill arrayParents for current member
-     * ------------------------------------------------------------------> Masters/ References
-     */
-    private function populateClubMaster(){
-        $tblTemp = ClubMaster::all();
-        foreach ($tblTemp as $rec){
-            $this->arrayClubMaster[] = $rec;
-        }
-    }
-
-    /**
-     * Extract and Fill Parameters from params
-     * ------------------------------------------------------------------> Masters/ References
-     */
-    //
-    private function populateParams(){
-        $tblParamTable = Param::all();
-        foreach ($tblParamTable as $refTable){
-            switch($refTable->param){
-                case "MEMBERSHIP_FEE":
-                    $this->MEMBERSHIP_FEE = $refTable->int_value;
-                    break;
-                case "TAX_PERCENT":
-                    $this->TAX_PERCENT = $refTable->string_value;
-                    break;
-                case "CASHBACK_REWARD":
-                    $this->MEMBERSHIP_POINTS = $refTable->int_value;
-                    break;
-                case "LEVEL1_LEADERSHIP_INCOME":
-                    $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
-                    break;
-                case "LEVEL2_LEADERSHIP_INCOME":
-                    $this->LEVEL2_LEADERSHIP_INCOME = $refTable->int_value;
-                    break;
-                default :
-                $this->ROYALTY_REQ_NUM = 0;
-            }
-        }
-    }
+    
 
     //Get Level Commission Percent ***************************** called by updateLevelIncomes()
     private function getCommissionPercent($levelCtr){
@@ -665,8 +683,9 @@ class MemberAPIController extends Controller
                 $tblMemberIncome->ref_member_id = $request->member_id;
                 $tblMemberIncome->level_percent = $l_levelPercent;
                 $tblMemberIncome->commission = $l_commission;
+                $tblMemberIncome->deduction = 0;
                 $tblMemberIncome->ref_amount = $request->member_fee;
-                $tblMemberIncome->amount = $l_commission;
+                $tblMemberIncome->balance += $l_commission;
                 $tblMemberIncome->save();
 
                 $tblCurrentParent = Member::where('member_id',$memberMap->parent_id)->first();
@@ -679,7 +698,8 @@ class MemberAPIController extends Controller
                     $tblMemberIncome->direct_l1_percent = $this->LEVEL1_LEADERSHIP_INCOME;
                     $tblMemberIncome->commission =  $l_tmpCommission1;
                     $tblMemberIncome->ref_amount = $l_commission;
-                    $tblMemberIncome->amount =  $l_tmpCommission1;
+                    $tblMemberIncome->deduction = 0;
+                    $tblMemberIncome->balance += $l_tmpCommission1;
                     $tblMemberIncome->save();
                 }
                 if($l_tmpCommission2 > 0){
@@ -690,12 +710,15 @@ class MemberAPIController extends Controller
                     $tblMemberIncome->direct_l2_percent = $this->LEVEL2_LEADERSHIP_INCOME;
                     $tblMemberIncome->commission =  $l_tmpCommission2;
                     $tblMemberIncome->ref_amount = $l_commission;
-                    $tblMemberIncome->amount =  $l_tmpCommission2;
+                    $tblMemberIncome->deduction = 0;
+                    $tblMemberIncome->balance += $l_tmpCommission2;
                     $tblMemberIncome->save();
+
                 }
 
                 if($tblCurrentParent->parent_id>0){
                     $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
+                    $tbl_MemberWallet->redeemable_amt += $l_tmpCommission1 + $l_tmpCommission2;
                     $tbl_MemberWallet->leadership_income +=  $l_tmpCommission1 + $l_tmpCommission2;
                     $tbl_MemberWallet->level_income +=  $l_commission;
                     $tbl_MemberWallet->save();
@@ -712,7 +735,9 @@ class MemberAPIController extends Controller
         // $tblMemberIncome->level_percent = (100 - $l_totalPercent);
         $tblMemberIncome->commission = $l_leftovers;
         $tblMemberIncome->ref_amount = $request->member_fee;
-        $tblMemberIncome->amount = $l_leftovers;
+        $tblMemberIncome->deduction = 0;
+        $tblMemberIncome->balance += $l_leftovers;
+
         $tblMemberIncome->save();
     }
 

@@ -98,6 +98,9 @@ Route::post('/nonredeemableincomequery', [QueryAPIController::class,'GetNonRedee
 Route::post('/transferinquery', [QueryAPIController::class,'GetTransferInQuery'])->middleware('api.key');
 Route::post('/transferoutquery', [QueryAPIController::class,'GetTransferOutQuery'])->middleware('api.key');
 
+//Fund Transfer
+Route::post('/transferoutquery', [RechargeController::class,'FundTransfer'])->middleware('api.key');
+
 
 
 

@@ -23,6 +23,7 @@ class CreateRechargePointRegistersTable extends Migration
             $table->integer('recharge_points_added')->nullable();
             $table->integer('recharge_points_consumed')->nullable();
             $table->integer('balance_points')->nullable();
+            $table->string('tran_type');
             $table->string('remarks')->nullable();
             $table->timestamps();
         });

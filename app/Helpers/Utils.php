@@ -10,6 +10,24 @@ use Illuminate\Support\Facades\Http;
 use Razorpay\Api\Api;
 // use Exception;
 
+/**
+ * $rules = [
+ *       'name' => 'required',
+ *       'email' => 'required|email',
+ *       'message' => 'required|max:250',
+ *       'phone' => 'required|min:11|numeric',
+ *   ];
+ *
+ *   $customMessages = [
+ *       'required' => 'The :attribute field is required.'
+ *   ];
+ *
+ *   $this->validate($request, $rules, $customMessages);
+ */
+
+
+
+
 function sendSMS($mobile_no,$msg){
     // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
     // $response1 = Http::get($url);
