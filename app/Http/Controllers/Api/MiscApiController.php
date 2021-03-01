@@ -179,107 +179,118 @@ class MiscApiController extends Controller
             $this->calculateCTO($request->tran_date);
             $this->populateSTTO($request->tran_date);
 
-            //Bronz Calculation
-            $bronzMembersArray = $this->getDesignationMembers(2);
-            $bronzMemberCount = count($bronzMembersArray);
-            $distributionAmount = $this->cto * $this->BRONZ_PERCENT * 0.01;
-
-            $oneUnit = round($distributionAmount / $bronzMemberCount , 2);
-            $leftOver = $distributionAmount - ($oneUnit * $bronzMemberCount);
-
             $companyTurnover = new CompanyTurnover();
             $companyTurnover->turnover_from = $date;
             $companyTurnover->turnover_to = $date;
             $companyTurnover->turnover_type = 'DAILY';
-            $companyTurnover->turnover = $this->cto;
-            $companyTurnover->no_of_recepients = $bronzMemberCount;
-            $companyTurnover->fraction_leftover = $leftOver;
+            $companyTurnover->turnover = 0; // $this->cto;
+            $companyTurnover->no_of_recepients = 0; //$bronzMemberCount;
+            $companyTurnover->fraction_leftover = 0; //$leftOver;
             $companyTurnover->is_stto = false;
             $companyTurnover->save();
 
-            foreach($bronzMembersArray as $member){
-                $tbl = new MemberIncome();
-                $tbl->member_id = $member->member_id;
-                $tbl->turnover_id = $companyTurnover->id;
-                $tbl->income_type = 'CLUB';
-                $tbl->club_percent = $this->BRONZ_PERCENT;
-                $tbl->cto = $oneUnit;
-                $tbl->ref_amount =  $distributionAmount;
-                $tbl->commission = $oneUnit;
-                $tbl->amount = $oneUnit;
-                $tbl->save();
+            //Bronz Calculation
+            $bronzMembersArray = $this->getDesignationMembers(2);
+            $memberCount = count($bronzMembersArray);
+            if($memberCount > 0){
+                $distributionAmount = $this->cto * $this->BRONZ_PERCENT * 0.01;
+                $oneUnit = round($distributionAmount / $memberCount , 2);
+                // $leftOver = $distributionAmount - ($oneUnit * $bronzMemberCount);
 
-                $tbl_MemberWallet = MemberWallet::where('member_id', $member->member_id)->first();
-                $tbl_MemberWallet->redeemable_amt +=  $oneUnit;
-                $tbl_MemberWallet->club_income +=  $oneUnit;
-                $tbl_MemberWallet->save();
+                foreach($bronzMembersArray as $member){
+                    $tbl = new MemberIncome();
+                    $tbl->member_id = $member->member_id;
+                    $tbl->turnover_id = $companyTurnover->id;
+                    $tbl->income_type = 'CLUB';
+                    $tbl->club_percent = $this->BRONZ_PERCENT;
+                    $tbl->cto = $oneUnit;
+                    $tbl->ref_amount =  $distributionAmount;
+                    $tbl->commission = $oneUnit;
+                    $tbl->amount = $oneUnit;
+                    $tbl->save();
+    
+                    $tbl_MemberWallet = MemberWallet::where('member_id', $member->member_id)->first();
+                    $tbl_MemberWallet->redeemable_amt +=  $oneUnit;
+                    $tbl_MemberWallet->club_income +=  $oneUnit;
+                    $tbl_MemberWallet->save();
+                }
             }
 
             //Silver Calculation
             $silverArray = $this->getDesignationMembers(3);
-            foreach($silverArray as $arr){
-                $tmp = $arr->STO;
-                $clubAmount = $tmp * $this->SILVER_PERCENT * 0.01;
-
-                $tbl = new MemberIncome();
-                $tbl->member_id = $arr->member_id;
-                $tbl->income_type = 'CLUB';
-                $tbl->club_percent = $this->SILVER_PERCENT;
-                $tbl->stto = $tmp;
-                $tbl->ref_amount =  $tmp;
-                $tbl->commission = $clubAmount;
-                $tbl->amount = $clubAmount;
-                $tbl->save();
-
-                $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
-                $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
-                $tbl_MemberWallet->club_income +=  $clubAmount;
-                $tbl_MemberWallet->save();
+            $memberCount = count($silverArray);
+            if($memberCount > 0){
+                foreach($silverArray as $arr){
+                    $tmp = $arr->STO;
+                    $clubAmount = $tmp * $this->SILVER_PERCENT * 0.01;
+    
+                    $tbl = new MemberIncome();
+                    $tbl->member_id = $arr->member_id;
+                    $tbl->income_type = 'CLUB';
+                    $tbl->club_percent = $this->SILVER_PERCENT;
+                    $tbl->stto = $tmp;
+                    $tbl->ref_amount =  $tmp;
+                    $tbl->commission = $clubAmount;
+                    $tbl->amount = $clubAmount;
+                    $tbl->save();
+    
+                    $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
+                    $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
+                    $tbl_MemberWallet->club_income +=  $clubAmount;
+                    $tbl_MemberWallet->save();
+                }
             }
 
             //Gold Calculation
             $goldArray = $this->getDesignationMembers(4);
-            foreach($goldArray as $arr){
-                $tmp = $arr->STO;
-                $clubAmount = $tmp * $this->GOLD_PERCENT * 0.01;
-
-                $tbl = new MemberIncome();
-                $tbl->member_id = $arr->member_id;
-                $tbl->income_type = 'CLUB';
-                $tbl->club_percent = $this->GOLD_PERCENT;
-                $tbl->stto = $tmp;
-                $tbl->ref_amount =  $tmp;
-                $tbl->commission = $clubAmount;
-                $tbl->amount = $clubAmount;
-                $tbl->save();
-
-                $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
-                $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
-                $tbl_MemberWallet->club_income +=  $clubAmount;
-                $tbl_MemberWallet->save();
+            $memberCount = count($goldArray);
+            if($memberCount > 0){
+                foreach($goldArray as $arr){
+                    $tmp = $arr->STO;
+                    $clubAmount = $tmp * $this->GOLD_PERCENT * 0.01;
+    
+                    $tbl = new MemberIncome();
+                    $tbl->member_id = $arr->member_id;
+                    $tbl->income_type = 'CLUB';
+                    $tbl->club_percent = $this->GOLD_PERCENT;
+                    $tbl->stto = $tmp;
+                    $tbl->ref_amount =  $tmp;
+                    $tbl->commission = $clubAmount;
+                    $tbl->amount = $clubAmount;
+                    $tbl->save();
+    
+                    $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
+                    $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
+                    $tbl_MemberWallet->club_income +=  $clubAmount;
+                    $tbl_MemberWallet->save();
+                }
             }
 
-             //Diamond Calculation
+            //Diamond Calculation
             $diamondArray = $this->getDesignationMembers(5);
-            foreach($diamondArray as $arr){
-                $tmp = $arr->STO;
-                $clubAmount = $tmp * $this->DIAMOND_PERCENT * 0.01;
-
-                $tbl = new MemberIncome();
-                $tbl->member_id = $arr->member_id;
-                $tbl->income_type = 'CLUB';
-                $tbl->club_percent = $this->DIAMOND_PERCENT;
-                $tbl->stto = $tmp;
-                $tbl->ref_amount =  $tmp;
-                $tbl->commission = $clubAmount;
-                $tbl->amount = $clubAmount;
-                $tbl->save();
-
-                $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
-                $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
-                $tbl_MemberWallet->club_income +=  $clubAmount;
-                $tbl_MemberWallet->save();
+            $memberCount = count($diamondArray);
+            if($memberCount > 0){
+                foreach($diamondArray as $arr){
+                    $tmp = $arr->STO;
+                    $clubAmount = $tmp * $this->DIAMOND_PERCENT * 0.01;
+    
+                    $tbl = new MemberIncome();
+                    $tbl->member_id = $arr->member_id;
+                    $tbl->income_type = 'CLUB';
+                    $tbl->club_percent = $this->DIAMOND_PERCENT;
+                    $tbl->stto = $tmp;
+                    $tbl->ref_amount =  $tmp;
+                    $tbl->commission = $clubAmount;
+                    $tbl->amount = $clubAmount;
+                    $tbl->save();
+    
+                    $tbl_MemberWallet = MemberWallet::where('member_id', $arr->member_id)->first();
+                    $tbl_MemberWallet->redeemable_amt +=  $clubAmount;
+                    $tbl_MemberWallet->club_income +=  $clubAmount;
+                    $tbl_MemberWallet->save();
+                }
             }
+
             DB::commit();
             $response = ['status' => true, 'message' => 'Successfully calculated Club Income'];
             return response($response, 200);

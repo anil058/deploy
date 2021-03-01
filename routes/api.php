@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\RechargeController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Auth\ApiAuthController;
 use App\Http\Controllers\Api\UserImageController;
+use App\Http\Controllers\Api\RedeemController;
 
 /*
 |--------------------------------------------------------------------------
@@ -67,7 +68,6 @@ Route::post('/usermembers', [TranApiController::class,'GetUserMembers'])->middle
 
 Route::post('/memberincomes', [TranApiController::class,'GetTransactionsRedeemable'])->middleware('api.key');
 Route::post('/clubincomes', [TranApiController::class,'GetTransactionsClub'])->middleware('api.key');
-Route::post('/reimbursments', [TranApiController::class,'GetTransactions'])->middleware('api.key');
 
 Route::post('/dashboard', [TranApiController::class,'Dashboard'])->middleware('api.key');
 Route::post('/memberrewards', [TranApiController::class,'MemberRewards'])->middleware('api.key');; //->middleware('api.key');
@@ -99,7 +99,13 @@ Route::post('/transferinquery', [QueryAPIController::class,'GetTransferInQuery']
 Route::post('/transferoutquery', [QueryAPIController::class,'GetTransferOutQuery'])->middleware('api.key');
 
 //Fund Transfer
-Route::post('/transferoutquery', [RechargeController::class,'FundTransfer'])->middleware('api.key');
+Route::post('/fundtransfer', [RechargeController::class,'FundTransfer'])->middleware('api.key');
+Route::post('/getrecipientname', [MemberAPIController::class,'getRecipientName']);
+Route::post('/getfundtransferswithname', [TranApiController::class,'getFundTransfersWithBalance']);
+
+//Redeem
+Route::post('/reimbursments', [RedeemController::class,'GetRedeemes'])->middleware('api.key');
+Route::post('/requestredeem', [RedeemController::class,'RequestRedeem'])->middleware('api.key');;
 
 
 

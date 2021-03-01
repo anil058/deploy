@@ -19,8 +19,14 @@ class CreatePayoutRequestsTable extends Migration
             $table->double('request_amount')->unique();
             $table->double('payment_amount')->unique();
             $table->string('status')->default('PENDING')->index();
-            $table->foreignId('approved_id')->references('id')->on('users')->onDelete('cascade');
+            $table->bigInteger('approver_id')->nullable();
             $table->dateTime('approved_on')->nullable();
+            $table->string('bank_name')->nullable();
+            $table->string('ifsc_code')->nullable();
+            $table->string('account_number')->nullable();
+            $table->string('razor_contact_id')->unique()->index();
+            $table->string('razor_fund_id')->unique()->index();
+            $table->string('payout_id')->unique()->index();
             $table->timestamps();
         });
     }

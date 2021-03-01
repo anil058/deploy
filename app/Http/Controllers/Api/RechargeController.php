@@ -488,7 +488,7 @@ class RechargeController extends Controller
             $tblMemberWalletRef = MemberWallet::where('member_id', $refId)->first();
 
             //Check if wallet has sufficient balance
-            if(trim($request->mobile_no) == 'NON-REDEEMABLE'){
+            if(trim($request->wallet_type) == 'NON-REDEEMABLE'){
                 //Check if sufficient balance
                 if($request->amount > $tblMemberWallet->non_redeemable){
                     $response = ['status' => false, 'message' => "Insufficient Balance"];
@@ -517,7 +517,7 @@ class RechargeController extends Controller
                 $tblRechargePointRegister->remarks = "TRANSFER IN FROM NON REDEEMABLE";
                 $tblRechargePointRegister->save();
             }
-            if(trim($request->mobile_no) == 'REDEEMABLE'){
+            if(trim($request->wallet_type) == 'REDEEMABLE'){
                 //Check if sufficient balance
                 if($request->amount > $tblMemberWallet->redeemable_amt){
                     $response = ['status' => false, 'message' => "Insufficient Balance"];
@@ -548,6 +548,8 @@ class RechargeController extends Controller
                 $tblRechargePointRegister->save();
             }
             DB::commit();
+            $response = ['status' => true, 'message' => "Successfully Updated Fund"];
+            return response($response, 200);
         } catch(Exception $e){
             DB::rollBack();
             $response = ['status' => false, 'message' => "Could not transfer"];
