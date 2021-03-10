@@ -121,7 +121,7 @@ class QueryAPIController extends Controller
                     DATE_FORMAT(i.created_at,'%d/%m/%Y') AS tran_date
                 FROM member_incomes i
                 LEFT JOIN members m ON i.ref_member_id=m.member_id
-                WHERE (i.created_at BETWEEN NOW() - INTERVAL 60 DAY AND NOW()) and (i.member_id = ". $request->user()->id.") ORDER BY i.created_at desc";
+                WHERE (date(i.created_at) BETWEEN NOW() - INTERVAL 60 DAY AND NOW()) and (i.member_id = ". $request->user()->id.") ORDER BY i.created_at desc";
             } else {
                 $sql = "SELECT ifnull(i.commission,'') as commission,m.unique_id AS ref_id,
                     concat(m.first_name,' ',m.last_name) AS ref_name,
@@ -130,7 +130,7 @@ class QueryAPIController extends Controller
                     DATE_FORMAT(i.created_at,'%d/%m/%Y') AS tran_date
                 FROM member_incomes i
                 LEFT JOIN members m ON i.ref_member_id=m.member_id
-                WHERE (i.created_at BETWEEN str_to_date('".$request->start_date."','%d/%m/%Y') AND str_to_date('".$request->end_date."','%d/%m/%Y')) and (i.member_id = ". $request->user()->id.") ORDER BY i.created_at desc";
+                WHERE (date(i.created_at) BETWEEN str_to_date('".$request->start_date."','%d/%m/%Y') AND str_to_date('".$request->end_date."','%d/%m/%Y')) and (i.member_id = ". $request->user()->id.") ORDER BY i.created_at desc";
                 $l_message = $request->start_date.' and '.$request->end_date;
             }
 
@@ -178,7 +178,7 @@ class QueryAPIController extends Controller
                         r.remarks
                     FROM recharge_point_registers r
                     INNER JOIN members m ON r.member_id=m.member_id
-                    WHERE (r.created_at BETWEEN NOW() - INTERVAL 60 DAY AND NOW()) and (r.member_id = ". $request->user()->id.") ORDER BY r.created_at desc";
+                    WHERE (date(r.created_at) BETWEEN NOW() - INTERVAL 60 DAY AND NOW()) and (r.member_id = ". $request->user()->id.") ORDER BY r.created_at desc";
                 } else {
                 $sql = "SELECT m.unique_id,
                         concat(m.first_name,' ',m.last_name) member_name,
@@ -189,7 +189,7 @@ class QueryAPIController extends Controller
                         r.remarks
                     FROM recharge_point_registers r
                     INNER JOIN members m ON r.member_id=m.member_id
-                    WHERE (r.created_at BETWEEN str_to_date('".$request->start_date."','%d/%m/%Y') AND str_to_date('".$request->end_date."','%d/%m/%Y')) and (r.member_id = ". $request->user()->id.") ORDER BY r.created_at desc";
+                    WHERE (date(r.created_at) BETWEEN str_to_date('".$request->start_date."','%d/%m/%Y') AND str_to_date('".$request->end_date."','%d/%m/%Y')) and (r.member_id = ". $request->user()->id.") ORDER BY r.created_at desc";
                 $l_message = $request->start_date.' and '.$request->end_date;
             }
         
