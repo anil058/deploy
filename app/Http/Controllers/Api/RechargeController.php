@@ -516,6 +516,18 @@ class RechargeController extends Controller
                 $tblRechargePointRegister->tran_type = "TRANSFER-IN" ;//RECHARGE,CASHBACK
                 $tblRechargePointRegister->remarks = "TRANSFER IN FROM NON REDEEMABLE";
                 $tblRechargePointRegister->save();
+
+                //Deduct from host Wallet
+                $tblMemberWallet->transfer_out_amount +=  $request->amount;
+                $tblMemberWallet->non_redeemable -=  $request->amount;
+                $tblMemberWallet->save();
+
+                //Add to Recepient wallet
+                $tblMemberWalletRef->transfer_in_amount +=  $request->amount;
+                $tblMemberWalletRef->non_redeemable +=  $request->amount;
+                $tblMemberWalletRef->save();
+
+                                
             }
             if(trim($request->wallet_type) == 'REDEEMABLE'){
                 //Check if sufficient balance
@@ -546,6 +558,16 @@ class RechargeController extends Controller
                 $tblRechargePointRegister->tran_type = "TRANSFER-IN" ;//RECHARGE,CASHBACK
                 $tblRechargePointRegister->remarks = "TRANSFER IN FROM REDEEMABLE";
                 $tblRechargePointRegister->save();
+
+                //Deduct from host Wallet
+                $tblMemberWallet->transferout_amount +=  $request->amount;
+                $tblMemberWallet->redeemable_amt -=  $request->amount;
+                $tblMemberWallet->save();
+
+                //Add to Recepient wallet
+                $tblMemberWalletRef->transferin_amount +=  $request->amount;
+                $tblMemberWalletRef->non_redeemable +=  $request->amount;
+                $tblMemberWalletRef->save();
             }
             DB::commit();
             $response = ['status' => true, 'message' => "Successfully Updated Fund"];
