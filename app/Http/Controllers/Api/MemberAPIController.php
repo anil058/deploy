@@ -642,7 +642,7 @@ class MemberAPIController extends Controller
         $tblMember -> email = $tblTempMember->email;
         $tblMember -> referal_code = getUniqueReferalCode();
         $tblMember -> mobile_no = $request->mobile_no;
-        $tblMember -> recharge_points = $this->MEMBERSHIP_POINTS;
+        $tblMember -> recharge_points =0; // $this->MEMBERSHIP_POINTS;
         $tblMember -> image = 'dummy.jpg';
         $tblMember -> designation_id = 1;
         $tblMember -> current_level = 0;
@@ -1096,29 +1096,20 @@ class MemberAPIController extends Controller
         // $tbl->member_id = $request->member_id;
         // $tbl->ref_member_id = $request->member_id;
         // $tbl->payment_id = $request->payment_int_id;
+        // $tbl->tran_type = 'MEMBERSHIP_BONUS';
         // $tbl->tran_date = date('Y-m-d H:i:s');
-        // $tbl->recharge_points_added = $request->member_fee;
-        // $tbl->balance_points +=$request->member_fee;
+        // $tbl->recharge_points_added = $this->MEMBERSHIP_POINTS;
+        // $tbl->balance_points += $this->MEMBERSHIP_POINTS;
         // $tbl->save();
-
-        $tbl = new RechargePointRegister();
-        $tbl->member_id = $request->member_id;
-        $tbl->ref_member_id = $request->member_id;
-        $tbl->payment_id = $request->payment_int_id;
-        $tbl->tran_type = 'MEMBERSHIP_BONUS';
-        $tbl->tran_date = date('Y-m-d H:i:s');
-        $tbl->recharge_points_added = $this->MEMBERSHIP_POINTS;
-        $tbl->balance_points += $this->MEMBERSHIP_POINTS;
-        $tbl->save();
     }    
 
     private function updateMemberWallet($member_id){
         $tbl1 = new MemberWallet();
         $tbl1->member_id = $member_id;
         $tbl1->total_members = 0;
-        $tbl1->welcome_amt = $this->MEMBERSHIP_FEE;
+        $tbl1->welcome_amt = $this->MEMBERSHIP_FEE + $this->MEMBERSHIP_POINTS;
         $tbl1->redeemable_amt = 0;
-        $tbl1->non_redeemable = $this->MEMBERSHIP_POINTS;
+        $tbl1->non_redeemable = 0; //$this->MEMBERSHIP_POINTS;
         $tbl1->level_income = 0;
         $tbl1->leadership_income = 0;
         $tbl1->club_income = 0;

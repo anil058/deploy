@@ -272,7 +272,86 @@ class TranApiController extends Controller
                     LEFT JOIN members m1 ON m.parent_id = m1.member_id
                     INNER JOIN club_masters d ON m.designation_id=d.id
                     INNER JOIN member_maps p ON m.member_id=p.member_id
-                    WHERE p.parent_id = ".$request->user()->id." AND p.level_ctr+1 =".$request->level_ctr);
+                    WHERE p.parent_id = ".$request->user()->id." AND p.level_ctr =".$request->level_ctr);
+            }
+
+            $sm = 0;
+            $varAll = '0';
+            $var1 = '0';
+            $var2 = '0';
+            $var3 = '0';
+            $var4 = '0';
+            $var5 = '0';
+            $var6 = '0';
+            $var7 = '0';
+            $var8 = '0';
+            $var9 = '0';
+            $var10 = '0';
+            $var11 = '0';
+            $var12 = '0';
+            $var13 = '0';
+            $var14 = '0';
+
+            $sql = "
+                SELECT level_ctr, COUNT(level_ctr) cnt
+                FROM member_maps m
+                WHERE m.parent_id=".$request->user()->id."
+                GROUP BY level_ctr            
+            ";
+
+            $tblCnt = DB::select($sql);
+
+            foreach( $tblCnt as $cnt){
+                switch($cnt->level_ctr){
+                    case 1:
+                        $var1 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 2:
+                        $var2 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 3:
+                        $var3 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 4:
+                        $var4 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 5:
+                        $var5 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 6:
+                        $var6 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 7:
+                        $var7 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 8:
+                        $var8 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 9:
+                        $var9 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 10:
+                        $var10 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 11:
+                        $var11 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                    case 12:
+                        $var12 = strval($cnt->cnt);
+                        $sm += $cnt->cnt;
+                        break;
+                }
             }
 
             // $tblMembers = Member::where('member_id', $request->user()->id);
@@ -303,6 +382,19 @@ class TranApiController extends Controller
             $response=array();
             $response['status'] = true;
             $response['message'] = 'Success';
+            $response['total_cnt'] = strval($sm);
+            $response['1'] = $var1;
+            $response['2'] = $var2;
+            $response['3'] = $var3;
+            $response['4'] = $var4;
+            $response['5'] = $var5;
+            $response['6'] = $var6;
+            $response['7'] = $var7;
+            $response['8'] = $var8;
+            $response['9'] = $var9;
+            $response['10'] = $var10;
+            $response['11'] = $var11;
+            $response['12'] = $var12;
             $response["data"]=$data_array;
             return response($response,200);
         } catch(Exception $e){
