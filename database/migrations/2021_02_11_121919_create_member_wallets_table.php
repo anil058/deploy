@@ -27,6 +27,20 @@ class CreateMemberWalletsTable extends Migration
             $table->decimal('transferout_amount');
             $table->timestamps();
         });
+
+        DB::table('member_wallets')->insert(array(
+            'member_id' => 0,
+            'total_members' => 0,
+            'welcome_amt' => 0,
+            'redeemable_amt' => 0,
+            'non_redeemable' => 0,
+            'level_income' => 0,
+            'leadership_income' => 0,
+            'club_income' => 0,
+            'transferin_amount' => 0,
+            'transferout_amount' => 0,
+        ));
+
     }
 
     /**

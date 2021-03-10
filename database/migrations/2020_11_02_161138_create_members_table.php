@@ -42,7 +42,14 @@ class CreateMembersTable extends Migration
             $table->string('bank_name')->nullable();
             $table->string('ifsc_code')->nullable();
             $table->string('account_number')->nullable();
+            $table->boolean('isfemale')->default(0);
+            $table->dateTime('dob')->nullable()->index();
+            $table->string('nominee_name')->nullable();
+            $table->string('relation')->nullable();
             $table->boolean('active')->default(0);
+            $table->boolean('razor_active')->default(0);
+            $table->string('razor_contact_id')->nullable()->unique()->index();
+            $table->string('razor_fund_id')->nullable()->unique()->index();
             $table->timestamps();
             // $table->enum('user_status', array('Active', 'Deactive'))->default('Active');
         });

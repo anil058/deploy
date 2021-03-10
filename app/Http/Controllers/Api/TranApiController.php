@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use App\Models\PaymentGateway;
 use App\Models\Param;
 use App\Models\MemberDeposit;
+use App\Models\MemberRewards;
 use App\Models\MemberMap;
 use App\Models\MemberWallet;
 use Carbon\Carbon;
@@ -378,19 +379,27 @@ class TranApiController extends Controller
             // $l_memberCount = MemberMap::where('parent_id', $member_id)->count();
             $tblMember = Member::where('member_id', $member_id)->first();
             $tblMemberWallet = MemberWallet::where('member_id',$member_id)->first();
+            // $tblReward = MemberRewards::where('member_id',$member_id)->last();
+            $tblReward = DB::table('member_rewards')->where('member_id',$member_id)->latest('id')->first();
 
+            $reward = 'NA';
+            if($tblReward != null){
+                $reward = $tblReward->reward_name;
+            }
             $response['status'] = true;
             $response['message'] = 'Success';
             $response["referal_code"] = strval($tblMember->referal_code);
             $response["unique_id"] = strval($tblMember->unique_id);
             $response["total_members"] = strval($tblMemberWallet->total_members);
             $response["redeemable_amt"] = strval($tblMemberWallet->redeemable_amt);
+            $response["welcome_amt"] = strval($tblMemberWallet->welcome_amt);
             $response["non_redeemable"] = strval($tblMemberWallet->non_redeemable);
             $response["level_income"] = strval($tblMemberWallet->level_income);
             $response["leadership_income"] = strval($tblMemberWallet->leadership_income);
             $response["club_income"] = strval($tblMemberWallet->club_income);
             $response["transferin_amount"] = strval($tblMemberWallet->transferin_amount);
             $response["transferout_amount"] = strval($tblMemberWallet->transferout_amount);
+            $response["reward"] = $reward;
             return response($response,200);
         } catch(Exception $e){
             $response = ['status' => false, 'message' => $e->getMessage()];
@@ -442,6 +451,45 @@ class TranApiController extends Controller
     }
 
     public function CalculateClubIncome(Request $request){
+    }
 
+    public function getFundTransfersWithBalance(Request $request){
+        try{
+            $id = $request->user()->id;
+            $tblMemberWallet = MemberWallet::where('member_id', $id)->first();
+
+            $strSQL = "SELECT date_format(i.created_at,'%d/%m/%Y %h:%i %p') tran_date,
+                    'REDEEMABLE' tran_type,
+                    cast(i.deduction as char) amount,
+                    CONCAT(m1.first_name,' ',m1.last_name) ref_name,
+                        m1.mobile_no
+                    FROM member_incomes i
+                    INNER JOIN members m ON i.member_id=m.member_id
+                    INNER JOIN members m1 ON i.ref_member_id = m1.member_id
+                    WHERE (i.income_type = 'TRANSFER-OUT') AND (i.member_id = $id)
+                    UNION ALL
+                    SELECT date_format(r.created_at,'%d/%m/%Y %h:%i %p') tran_date,
+                        'NON-REDEEMABLE' tran_type,
+                        cast(r.recharge_points_consumed as char) amount,
+                        CONCAT(m2.first_name,' ',m2.last_name) ref_name,
+                        m2.mobile_no
+                    FROM recharge_point_registers r
+                    INNER JOIN members m ON r.member_id=m.member_id
+                    INNER JOIN members m2 ON r.ref_member_id = m2.member_id
+                    WHERE (r.tran_type = 'TRANSFER-OUT') AND (r.member_id = $id)
+                    ORDER BY tran_date";
+
+            $tblResult = DB::select($strSQL);
+
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["redeemable_amt"] = strval($tblMemberWallet->redeemable_amt);
+            $response["non_redeemable_amt"] = strval($tblMemberWallet->non_redeemable);
+            $response["data"] = $tblResult;
+            return response($response, 200);
+        } catch(Exception $e){
+            $response = ['status' => false, 'message' => $e];
+            return response($response, 200);
+        }
     }
 }
