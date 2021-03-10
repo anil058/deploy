@@ -178,8 +178,8 @@ class QueryAPIController extends Controller
                         r.remarks
                     FROM recharge_point_registers r
                     INNER JOIN members m ON r.member_id=m.member_id
-                    WHERE date(r.created_at) BETWEEN NOW() - INTERVAL 60 DAY AND NOW()) and (r.member_id = ". $request->user()->id.") ORDER BY r.created_at desc";
-                } else {
+                    WHERE (date(r.created_at) BETWEEN NOW() - INTERVAL 60 DAY AND NOW()) and (r.member_id = ". $request->user()->id.") ORDER BY r.created_at desc";
+              } else {
                 $sql = "SELECT m.unique_id,
                         concat(m.first_name,' ',m.last_name) member_name,
                         DATE_FORMAT(r.created_at, '%d/%m/%Y %h:%i %p') tran_date,

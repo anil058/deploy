@@ -29,8 +29,8 @@ use Razorpay\Api\Api;
 
 
 function sendSMS($mobile_no,$msg){
-    // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
-    // $response1 = Http::get($url);
+     $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+     $response1 = Http::get($url);
 }
 
 function generateNewMemberOTP($mobile_no) {
