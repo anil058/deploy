@@ -35,6 +35,8 @@ use App\Http\Controllers\Api\RedeemController;
 Route::group(['middleware' => ['cors', 'json.response', 'api.key']], function () {
     // public routes
     Route::post('/login', 'Auth\ApiAuthController@login')->name('login.api');
+    Route::post('/validatelogin', [ApiAuthController::class,'validateLogin']);
+
     // Route::post('/register','Auth\ApiAuthController@register')->name('register.api');
     Route::post('/logout', 'Auth\ApiAuthController@logout')->name('logout.api');
 
@@ -62,9 +64,12 @@ Route::post('/getmemberdocuments', [UserImageController::class,'getMemberDocumen
 
 Route::post('/forgotpassword', [ApiAuthController::class,'forgotPassword']);
 Route::post('/generateotp', [ApiAuthController::class,'generateOTP'])->middleware('api.key');
+Route::post('/generatenewmemberotp', [ApiAuthController::class,'generateNewMemberOTP']);
+//
 Route::post('/validateotp', [ApiAuthController::class,'validateOTP'])->middleware('api.key');
 
 Route::post('/usermembers', [TranApiController::class,'GetUserMembers'])->middleware('api.key');
+Route::post('/immediatemembers', [TranApiController::class,'GetImmediateMembers'])->middleware('api.key');
 
 Route::post('/memberincomes', [TranApiController::class,'GetTransactionsRedeemable'])->middleware('api.key');
 Route::post('/clubincomes', [TranApiController::class,'GetTransactionsClub'])->middleware('api.key');
@@ -79,6 +84,8 @@ Route::get('/updaterechargeservices', [MiscApiController::class,'updateRechargeS
 Route::post('/getproviders', [RechargeController::class,'GetProviders'])->middleware('api.key');
 Route::post('/rechargemobile', [RechargeController::class,'RechargeMobile'])->middleware('api.key');; //->middleware('api.key');
 Route::post('/nonredeemablewallet', [RechargeController::class,'GetNonRedeemableWallet'])->middleware('api.key');
+Route::post('/getmobileplans', [RechargeController::class,'GetMobilePlans'])->middleware('api.key');
+Route::post('/getbalances', [RechargeController::class,'GetBalances'])->middleware('api.key');
 
 Route::post('/saveuserpanfrontimage', [UserImageController::class,'saveUserPANFrontImage'])->middleware('api.key');
 Route::post('/saveuserpanbackimage', [UserImageController::class,'saveUserPANBackImage'])->middleware('api.key');

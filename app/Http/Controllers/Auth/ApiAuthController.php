@@ -26,7 +26,7 @@ class ApiAuthController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api')->except(['register','login','generateOTP','validateOTP','forgotPassword']);
+        $this->middleware('auth:api')->except(['register','login','generateOTP','validateOTP','forgotPassword','generateNewMemberOTP','validateLogin']);
     }
 
     // public function register (Request $request) {
@@ -47,6 +47,45 @@ class ApiAuthController extends Controller
     //     $response = ['token' => $token];
     //     return response($response, 200);
     // }
+
+    public function validateLogin (Request $request) {
+        try{
+            $validator = Validator::make($request->all(), [
+                'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                'password' => 'required|string|min:6'
+            ]);
+    
+            if ($validator->fails())
+            {
+                $error = $validator->errors()->first();
+                $response = ['status' => false, 'message' => $error];
+                return response($response, 200);
+            }
+
+            $user = MemberUser::where('mobile_no', $request->mobile_no)->first();
+            if ($user) {
+                if (Hash::check($request->password, $user->password)) {
+                    // $tblMember = Member::where('member_id', $user->id)->first();
+                    $response = [
+                        'status' => true, 
+                        'message' => 'Successful login'
+                    ];
+                    return response($response, 200);
+                } else {
+                    $response = ['status' => false, 'message' => 'Invalid User or Password'];
+                    return response($response, 200);
+                }
+            } else {
+                $response = ['status' => false, 'message' => 'Invalid User or Password'];
+                return response($response, 200);
+            }
+        } catch(Exception $e) {
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            return response($response, 200);
+        }
+
+
+    }
 
     public function login (Request $request) {
         try{
@@ -141,7 +180,10 @@ class ApiAuthController extends Controller
                         'token' => $token, 
                         'name' => $tblMember->first_name, 
                         'designation' => $tblDesignation->designation, 
-                        'image' => $profile_img];
+                        'image' => $profile_img,
+                        'unique_id' => $tblMember->unique_id,
+                        'referal_code' => $tblMember->referal_code
+                    ];
                     return response($response, 200);
                 } else {
                     $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
@@ -247,6 +289,33 @@ class ApiAuthController extends Controller
             }
 
             if(generateMemberOTP($request->mobile_no) == true){
+                $response = ['status' => true, 'message' => 'OTP Generated'];
+                // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=9835718779&text=Test%20SMS&priority=ndnd&stype=normal";
+                // $response1 = Http::get($url);
+                return response($response, 200);
+            }
+            $response = ['status' => false, 'message' => 'Could not Generate OTP'];
+            return response($response, 200);
+          
+        } catch(\Exception $e){
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            return response($response, 200);
+        }
+    }
+
+    public function generateNewMemberOTP(Request $request) {
+        try{
+            $validator = Validator::make($request->all(), [
+                'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+            ]);
+
+            if ($validator->fails()) {
+                $errors = $validator->errors()->first();
+                $response = ['status' => false, 'message' => $errors];
+                return response($response, 200);
+            }
+
+            if(generateNewMemberOTP($request->mobile_no) == true){
                 $response = ['status' => true, 'message' => 'OTP Generated'];
                 // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=9835718779&text=Test%20SMS&priority=ndnd&stype=normal";
                 // $response1 = Http::get($url);

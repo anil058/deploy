@@ -12,6 +12,7 @@ use App\Models\MemberIncome;
 use App\Models\MemberMap;
 use App\Models\MemberWallet;
 use App\Models\RechargePointRegister;
+use App\Models\RechargeCircle;
 use Exception;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
@@ -30,7 +31,7 @@ class RechargeController extends Controller
 
     private $arrayParents = array();
 
-    private $rechargeUrl = 'https://api.pay2all.in/v1/payment/recharge';
+    private $mobilePlanUrl = 'https://api.pay2all.in/v1/plan/mobile';
 
     public function __construct()
     {
@@ -95,13 +96,15 @@ class RechargeController extends Controller
             $tblProviders = RechargeProvider::where('service_id', 1)->get(['id','provider_name']);
             // $tblMember = Member::where('member_id', $request->user()->id)->first();
             $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
+            $tblCircles = RechargeCircle::all();
 
             $response = ['status' => true, 
                 'welcome' => strval($tblMemberWallet->welcome_amt),
                 'redeemable' => strval( $tblMemberWallet->redeemable_amt),
                 'non-redeemable' => strval( $tblMemberWallet->non_redeemable),
                 'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
-                'data' => $tblProviders,
+                'providers' => $tblProviders,
+                'circles' => $tblCircles
             ];
             return response($response, 200);
         } catch(Exception $e){
@@ -111,6 +114,83 @@ class RechargeController extends Controller
             return response($response, 200);
         }
     }
+
+    public function GetBalances(Request $request){
+        try{
+            $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
+
+            $response = ['status' => true, 
+                'welcome' => strval($tblMemberWallet->welcome_amt),
+                'redeemable' => strval( $tblMemberWallet->redeemable_amt),
+                'non-redeemable' => strval( $tblMemberWallet->non_redeemable),
+                'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable'
+            ];
+            return response($response, 200);
+        } catch(Exception $e){
+            $response = ['status' => false, 
+            'message' => 'Unable to get balance',
+            ];
+            return response($response, 200);
+        }
+    }
+
+
+    public function GetMobilePlans(Request $request){
+        try{
+            $validator = Validator::make($request->all(), [
+                'circle_id' => 'required|numeric',
+                'provider_id' => 'required|numeric',
+                ]);
+    
+            //General request validation
+            if ($validator->fails()) {
+                $errors = $validator->errors()->first();
+                return response()->json(['status' => false, 'message' => $errors]);
+            }
+
+            $token = Param::where("id", 4)->first()->long_text;
+
+
+            $client = new Client();
+            $res = $client->request('POST', $this->mobilePlanUrl, [
+                'form_params' => [
+                    'provider_id' => "2",
+                    'circle_id' => "18",
+                ],
+                'headers' => 
+                [
+                        'Authorization' => "Bearer {$token}"
+                ]
+                
+            ]);
+        
+            if($res->getStatusCode() == 200){
+                $json = json_decode($res->getBody(), true);
+                $response = ['status' => true, 
+                    'TOPUP' => $json['data']['TOPUP'],
+                    '3G4G' => $json['data']['3G/4G'],
+                    'RATE CUTTER' => $json['data']['RATE CUTTER'],
+                    '2G' => $json['data']['2G'],
+                    'SMS' => $json['data']['SMS'],
+                    'Romaing' => $json['data']['Romaing'],
+                    'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
+                ];
+            } else {
+                $response = ['status' => false, 
+                    'message' => 'Could not Fetch data',
+                ];
+            }
+
+        return response($response, 200);
+        } catch(Exception $e){
+            $response = ['status' => false, 
+            'message' => 'Unfortunately the request did not yield results',
+            ];
+            return response($response, 200);
+        }
+
+    }
+
 
     // public function RechargeMobile(Request $request){
     //     $validator = Validator::make($request->all(), [

@@ -229,6 +229,17 @@ class TranApiController extends Controller
 
     public function GetUserMembers(Request $request) {
         try {
+            $validator = Validator::make($request->all(), [
+                'level_ctr' => 'required',
+                'member_id' => 'required|numeric',
+            ]);
+
+            //General request validation
+            if ($validator->fails()) {
+                $errors = $validator->errors()->first();
+                return response()->json(['status' => false, 'message' => $errors]);
+            }
+
 
             // $users = User::join('posts', 'posts.user_id', '=', 'users.id')
             // ->where('users.status', 'active')
@@ -252,7 +263,7 @@ class TranApiController extends Controller
                     LEFT JOIN members m1 ON m.parent_id = m1.member_id
                     INNER JOIN club_masters d ON m.designation_id=d.id
                     INNER JOIN member_maps p ON m.member_id=p.member_id
-                    WHERE p.parent_id = ".$request->user()->id);
+                    WHERE p.parent_id = ".$request->member_id);
 
                 // $tblMembers =  Member::join('member_maps','members.member_id', '=', 'member_maps.member_id')
                 // ->where('member_maps.parent_id', $request->user()->id)
@@ -272,7 +283,7 @@ class TranApiController extends Controller
                     LEFT JOIN members m1 ON m.parent_id = m1.member_id
                     INNER JOIN club_masters d ON m.designation_id=d.id
                     INNER JOIN member_maps p ON m.member_id=p.member_id
-                    WHERE p.parent_id = ".$request->user()->id." AND p.level_ctr =".$request->level_ctr);
+                    WHERE p.parent_id = ".$request->member_id." AND p.level_ctr =".$request->level_ctr);
             }
 
             $sm = 0;
@@ -295,7 +306,7 @@ class TranApiController extends Controller
             $sql = "
                 SELECT level_ctr, COUNT(level_ctr) cnt
                 FROM member_maps m
-                WHERE m.parent_id=".$request->user()->id."
+                WHERE m.parent_id=".$request->member_id."
                 GROUP BY level_ctr            
             ";
 
@@ -395,6 +406,65 @@ class TranApiController extends Controller
             $response['10'] = $var10;
             $response['11'] = $var11;
             $response['12'] = $var12;
+            $response["data"]=$data_array;
+            return response($response,200);
+        } catch(Exception $e){
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            return response($response, 200);
+        }
+    }
+
+    public function GetImmediateMembers(Request $request) {
+        try {
+
+            $data_array = array();
+            DB::enableQueryLog();
+
+            // $strSQL = sprintf("SELECT a.member_id, concat(a.first_name,' ',a.last_name) member_name,a.mobile_no,a.image,a.unique_id,date_format(a.joining_date,'%d/%m/%Y') joining_date, COUNT(p1.id) downline_members
+            // FROM (
+            //     SELECT p.member_id, m.first_name, m.mobile_no,m.image,m.unique_id,m.joining_date
+            //     FROM member_maps p
+            //     INNER JOIN members m ON p.member_id=m.member_id
+            //     WHERE p.parent_id =%u AND p.level_ctr = 1) AS a
+            // LEFT JOIN member_maps p1 ON p1.parent_id=a.member_id
+            // GROUP BY a.member_id ", $request->user()->id);
+
+            $strSQL = "SELECT a.member_id, a.member_name, a.designation,a.mobile_no,a.image,a.unique_id,date_format(a.joining_date,'%d/%m/%Y') joining_date, COUNT(p1.id) downline_members
+            FROM (
+                SELECT p.member_id,cm.designation, concat(m.first_name,' ',m.last_name) member_name, m.mobile_no,m.image,m.unique_id,m.joining_date
+                FROM member_maps p
+                INNER JOIN members m ON p.member_id=m.member_id
+                LEFT JOIN club_masters cm ON m.designation_id=cm.id
+                WHERE p.parent_id =".$request->user()->id ." AND p.level_ctr = 1) AS a
+            LEFT JOIN member_maps p1 ON p1.parent_id=a.member_id GROUP BY a.member_id ";
+
+            $tblMembers = DB::select($strSQL);
+
+            foreach ($tblMembers as $member)
+            {
+                if(strlen($member->image) > 0){
+                    $path = public_path("member_images/") . $member->image;
+                    $imagedata = file_get_contents($path);
+                    $base64 = base64_encode($imagedata);
+                } else{
+                    $base64 = null;
+                }
+
+                $data_array[] = array(
+                    'member_id' => $member->member_id,
+                    'unique_id' => $member->unique_id,
+                    'member_name' => $member->member_name,
+                    'designation' => $member->designation,
+                    'mobile_no' => $member->mobile_no,
+                    'joining_date' =>  $member->joining_date, //Carbon::parse($member->joining_date)->format('d/m/Y'),
+                    'profile_pic' => $base64,
+                    'downline_members' => $member->downline_members,
+                );
+            }
+            // add these lines to your code.
+            $response=array();
+            $response['status'] = true;
+            $response['message'] = 'Success';
             $response["data"]=$data_array;
             return response($response,200);
         } catch(Exception $e){

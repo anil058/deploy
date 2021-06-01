@@ -74,184 +74,7 @@ class MemberAPIController extends Controller
         $this->middleware('auth:api')->except(['createTempUser','updatePaymentStatus','getRefererName','getRecipientName']);
     }
 
-    /**
-     * Extract and Fill arrayParents for current member
-     * ------------------------------------------------------------------> Masters/ References
-     */
-    private function populateClubMaster(){
-        $tblTemp = ClubMaster::all();
-        foreach ($tblTemp as $rec){
-            $this->arrayClubMaster[] = $rec;
-        }
-    }
-
-    /**
-     * Extract and Fill Parameters from params
-     * ------------------------------------------------------------------> Masters/ References
-     */
-    //
-    private function populateParams(){
-        $tblParamTable = Param::all();
-        foreach ($tblParamTable as $refTable){
-            switch($refTable->param){
-                case "MEMBERSHIP_FEE":
-                    $this->MEMBERSHIP_FEE = $refTable->int_value;
-                    break;
-                case "TAX_PERCENT":
-                    $this->TAX_PERCENT = $refTable->string_value;
-                    break;
-                case "CASHBACK_REWARD":
-                    $this->MEMBERSHIP_POINTS = $refTable->int_value;
-                    break;
-                case "LEVEL1_LEADERSHIP_INCOME":
-                    $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
-                    break;
-                case "LEVEL2_LEADERSHIP_INCOME":
-                    $this->LEVEL2_LEADERSHIP_INCOME = $refTable->int_value;
-                    break;
-                case "ALLOW_COMPANY_REFERAL_CODE":
-                    $this->ALLOW_COMPANY_REFERAL_CODE = ($refTable->bool_value == 0) ? false : true;
-                    break;
-                case "ALLOW_NEW_MEMBERS":
-                    $this->ALLOW_NEW_MEMBERS = ($refTable->bool_value == 0) ? false : true;
-                    break;
-                default :
-                $this->ROYALTY_REQ_NUM = 0;
-            }
-        }
-    }
-
      /**
-     * Test Method
-     * ===================================================================> Route Method
-     */
-    public function showUser(){
-        return "ANIL MISHRA"; //auth()->user();
-    }
-
-/**
-     * CREATE TEMPORARY MEMBER
-     * ===================================================================> Route Method
-     * Once Payment is Done One record each for MemberUser and Members
-     * otp, expiry_date, ip, expiry_at will be calculated
-     * ParentID will be fetched from Referral
-     */
-    public function createTempUser(Request $request){
-        DB::beginTransaction();
-        try{
-            //Validate request
-            $validator = Validator::make($request->all(), [
-                'first_name' => 'required|string|max:50',
-                'last_name' => 'required|string|max:50',
-                'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-                'referal_code' => 'required|max:10|min:10',
-                "email" => "required|email",
-                "password" => "required|string|max:50",
-                "address" => "string|max:200",
-                // "otp" => "required|numeric|min:1000|max:9999",
-            ]);
-             
-            // $txn_id = $this->newTxnID();
-            // $txn_id = createRazorpayTempOrder()
-            // dd($txn_id);
-            if ($validator->fails()) {
-                $errors = $validator->errors()->first();
-                $response = ['status' => false, 'message' => $errors];
-                return response($response, 200);
-                // return response()->json(['status' => false, 'message' => $errors],200);
-            }
-
-            $this->populateParams();
-
-            if ($this->ALLOW_NEW_MEMBERS == false){
-                $response = ['status' => false, 'message' => 'System Error! Please try again after sometime'];
-                return response($response, 200);
-            }
-
-//
-
-            if ($request->referal_code == '0000000000'){
-                if ($this->ALLOW_COMPANY_REFERAL_CODE == false){
-                    $response = ['status' => false, 'message' => 'Company Referal Code has been prohibited'];
-                    return response($response, 200);
-                }
-            }
-            // $this->populateParams();
-    
-            //Check if referal code is valid
-            // $tblReferal = Referal::where('referal_code', $request->referal_code)
-            //                 ->whereDate('expiry_at', '>=', Carbon::now()->toDateString())
-            //                 ->whereNull('temp_id')->first();
-
-            $tblReferal = Member::where('referal_code', $request->referal_code)->first();
-
-            if($tblReferal === null){
-                $response = ['status' => false, 'message' => 'Invalid Referal Code'];
-                return response($response, 200);
-            }
-
-            //Check if there is an existing user with same mobile no
-            $tblMember = Member::where('mobile_no', $request->mobile_no)
-                        -> orWhere ('email', $request->email)->first();
-            if($tblMember){
-                $response = ['status' => false, 'message' => 'User with this mobile no or email already exists'];
-                return response($response, 200);
-            }
-
-            // $tblParam = Param::where('param', 'MEMBERSHIP_FEE')->first();
-
-            //Check if mobile no exists in TempMember if yes replace the record, else add
-            $tempUser = TempMember::where('mobile_no', $request->mobile_no)->first();
-            if(!$tempUser){
-                $tempUser = new TempMember();
-            }
-            $tempUser->first_name = $request->first_name;
-            $tempUser->last_name = $request->last_name;
-            $tempUser->mobile_no = $request->mobile_no;
-            $tempUser->referal_code = $request->referal_code;
-            $tempUser->email = $request->email;
-            $tempUser->password = Hash::make($request->password);
-            $tempUser->address = $request->address;
-            $tempUser->parent_id = $tblReferal->member_id;
-
-            $membershipFee = $this->MEMBERSHIP_FEE;
-            $taxPercent = $this->TAX_PERCENT;
-            $taxAmount = round($this->MEMBERSHIP_FEE * $this->TAX_PERCENT * 0.01,2);
-            $netAmount = $this->MEMBERSHIP_FEE + $taxAmount;
-            
-            $tempUser->membership_fee = $membershipFee;
-            $tempUser->tax_percent = $taxPercent;
-            $tempUser->tax_amount = $taxAmount;
-            $tempUser->net_amount = $netAmount;
-
-            $tempUser->expiry_at = Carbon::now()->addDays(3);
-            $tempUser->ip = $request->ip();
-            $tempUser->save();
-           
-            generateNewMemberOTP($request->mobile_no);
-
-            $orderid = "";
-            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee , $taxPercent);
-            if(strlen($orderid) == 0){
-                throw new Exception("Could not generate order id");
-            }
-            DB::commit();
-            $response = ['status' => true, 
-            'temp_id' => $tempUser->id, 
-            'txn_id' => $orderid, 
-            'message' => 'Successfully Created Temporary User',
-            'fee_amount' => $netAmount * 100
-            ];
-            return response($response, 200);
-        } catch(Exception $e) {
-            $response = ['status' => false, 'message' => $e->getMessage()];
-            DB::rollBack();
-            return response($response, 200);
-        }
-    }
-    
-
-    /**
      * Update Member profile information
      * ===================================================================> Route Method
      */
@@ -484,7 +307,7 @@ class MemberAPIController extends Controller
 
     }
 
-/**
+    /**
      * Get Name of the Member whose reference is being used as referer
      * ===================================================================> Route Method
      */
@@ -503,12 +326,12 @@ class MemberAPIController extends Controller
             $tblMember = Member::where('referal_code', $request->referal_code)->first();
     
             if($tblMember == null){
-                return response()->json(['status' => true, 'message' => 'Invalid Referal Code']);
+                return response()->json(['status' => false, 'message' => 'Invalid Referal Code']);
             }
             $memberName = $tblMember->first_name . ' ' . $tblMember->last_name;
             return response()->json(['status' => true, 'message' => $memberName]);
         }catch(Exception $e){
-            return response()->json(['status' => true, 'message' => $e->getMessage()]);
+            return response()->json(['status' => false, 'message' => $e->getMessage()]);
         }
 
     }
@@ -539,6 +362,194 @@ class MemberAPIController extends Controller
     }
 
 
+    //############################################################################
+    //############################################################################
+    //############################################################################
+    //############################################################################
+    //############################################################################
+    //############################################################################
+    //############################################################################
+    //############################################################################
+    //############################################################################
+
+
+    /**
+     * Extract and Fill arrayParents for current member
+     * ------------------------------------------------------------------> Masters/ References
+     */
+    private function populateClubMaster(){
+        $tblTemp = ClubMaster::all();
+        foreach ($tblTemp as $rec){
+            $this->arrayClubMaster[] = $rec;
+        }
+    }
+
+    /**
+     * Extract and Fill Parameters from params
+     * ------------------------------------------------------------------> Masters/ References
+     */
+    //
+    private function populateParams(){
+        $tblParamTable = Param::all();
+        foreach ($tblParamTable as $refTable){
+            switch($refTable->param){
+                case "MEMBERSHIP_FEE":
+                    $this->MEMBERSHIP_FEE = $refTable->int_value;
+                    break;
+                case "TAX_PERCENT":
+                    $this->TAX_PERCENT = $refTable->string_value;
+                    break;
+                case "CASHBACK_REWARD":
+                    $this->MEMBERSHIP_POINTS = $refTable->int_value;
+                    break;
+                case "LEVEL1_LEADERSHIP_INCOME":
+                    $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
+                case "LEVEL2_LEADERSHIP_INCOME":
+                    $this->LEVEL2_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
+                case "ALLOW_COMPANY_REFERAL_CODE":
+                    $this->ALLOW_COMPANY_REFERAL_CODE = ($refTable->bool_value == 0) ? false : true;
+                    break;
+                case "ALLOW_NEW_MEMBERS":
+                    $this->ALLOW_NEW_MEMBERS = ($refTable->bool_value == 0) ? false : true;
+                    break;
+                default :
+                $this->ROYALTY_REQ_NUM = 0;
+            }
+        }
+    }
+
+     /**
+     * Test Method
+     * ===================================================================> Route Method
+     */
+    public function showUser(){
+        return "ANIL MISHRA"; //auth()->user();
+    }
+
+/**
+     * CREATE TEMPORARY MEMBER
+     * ===================================================================> Route Method
+     * Once Payment is Done One record each for MemberUser and Members
+     * otp, expiry_date, ip, expiry_at will be calculated
+     * ParentID will be fetched from Referral
+     */
+    public function createTempUser(Request $request){
+        DB::beginTransaction();
+        try{
+            //Validate request
+            $validator = Validator::make($request->all(), [
+                'first_name' => 'required|string|max:50',
+                'last_name' => 'required|string|max:50',
+                'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                'referal_code' => 'required|max:10|min:10',
+                "email" => "required|email",
+                "password" => "required|string|max:50",
+                "address" => "string|max:200",
+                // "otp" => "required|numeric|min:1000|max:9999",
+            ]);
+             
+            // $txn_id = $this->newTxnID();
+            // $txn_id = createRazorpayTempOrder()
+            // dd($txn_id);
+            if ($validator->fails()) {
+                $errors = $validator->errors()->first();
+                $response = ['status' => false, 'message' => $errors];
+                return response($response, 200);
+                // return response()->json(['status' => false, 'message' => $errors],200);
+            }
+
+            $this->populateParams();
+
+            if ($this->ALLOW_NEW_MEMBERS == false){
+                $response = ['status' => false, 'message' => 'System Error! Please try again after sometime'];
+                return response($response, 200);
+            }
+
+
+            if ($request->referal_code == '0000000000'){
+                if ($this->ALLOW_COMPANY_REFERAL_CODE == false){
+                    $response = ['status' => false, 'message' => 'Company Referal Code has been prohibited'];
+                    return response($response, 200);
+                }
+            }
+            // $this->populateParams();
+    
+            //Check if referal code is valid
+            // $tblReferal = Referal::where('referal_code', $request->referal_code)
+            //                 ->whereDate('expiry_at', '>=', Carbon::now()->toDateString())
+            //                 ->whereNull('temp_id')->first();
+
+            $tblReferal = Member::where('referal_code', $request->referal_code)->first();
+
+            if($tblReferal === null){
+                $response = ['status' => false, 'message' => 'Invalid Referal Code'];
+                return response($response, 200);
+            }
+
+            //Check if there is an existing user with same mobile no
+            $tblMember = Member::where('mobile_no', $request->mobile_no)
+                        -> orWhere ('email', $request->email)->first();
+            if($tblMember){
+                $response = ['status' => false, 'message' => 'User with this mobile no or email already exists'];
+                return response($response, 200);
+            }
+
+            // $tblParam = Param::where('param', 'MEMBERSHIP_FEE')->first();
+
+            //Check if mobile no exists in TempMember if yes replace the record, else add
+            $tempUser = TempMember::where('mobile_no', $request->mobile_no)->first();
+            if(!$tempUser){
+                $tempUser = new TempMember();
+            }
+            $tempUser->first_name = $request->first_name;
+            $tempUser->last_name = $request->last_name;
+            $tempUser->mobile_no = $request->mobile_no;
+            $tempUser->referal_code = $request->referal_code;
+            $tempUser->email = $request->email;
+            $tempUser->password = Hash::make($request->password);
+            $tempUser->address = $request->address;
+            $tempUser->parent_id = $tblReferal->member_id;
+
+            $membershipFee = $this->MEMBERSHIP_FEE;
+            $taxPercent = $this->TAX_PERCENT;
+            $taxAmount = round($this->MEMBERSHIP_FEE * $this->TAX_PERCENT * 0.01,2);
+            $netAmount = $this->MEMBERSHIP_FEE + $taxAmount;
+            
+            $tempUser->membership_fee = $membershipFee;
+            $tempUser->tax_percent = $taxPercent;
+            $tempUser->tax_amount = $taxAmount;
+            $tempUser->net_amount = $netAmount;
+
+            $tempUser->expiry_at = Carbon::now()->addDays(3);
+            $tempUser->ip = $request->ip();
+            $tempUser->save();
+           
+            generateNewMemberOTP($request->mobile_no);
+
+            $orderid = "";
+            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee , $taxPercent);
+            if(strlen($orderid) == 0){
+                throw new Exception("Could not generate order id");
+            }
+            DB::commit();
+            $response = ['status' => true, 
+            'temp_id' => $tempUser->id, 
+            'txn_id' => $orderid, 
+            'message' => 'Successfully Created Temporary User',
+            'fee_amount' => $netAmount * 100
+            ];
+            return response($response, 200);
+        } catch(Exception $e) {
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            DB::rollBack();
+            return response($response, 200);
+        }
+    }
+    
+
+   
     /**
      * Extract and Fill arrayParents for current member
      * ------------------------------------------------------------------> Masters/ References
@@ -700,6 +711,14 @@ class MemberAPIController extends Controller
             $level_ctr = $memberMap->level_ctr; // + 1;
             //Calculate Level Commission
             if($level_ctr < 13){
+//Update member Count in member wallet
+                $memberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
+                $memberWallet->total_members += 1;
+                $memberWallet->save();
+
+
+//************************************* */
+
                 $l_levelPercent = $this->getCommissionPercent($level_ctr);
                 $l_commission = $request->member_fee * $l_levelPercent * 0.01;
                 $l_tmpCommission1 = $l_commission * $this->LEVEL1_LEADERSHIP_INCOME * 0.01;

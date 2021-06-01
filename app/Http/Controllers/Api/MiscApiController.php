@@ -7,6 +7,7 @@ use App\Models\CompanyTurnover;
 use App\Models\Param;
 use App\Models\RechargeProvider;
 use App\Models\RechargeService;
+use App\Models\RechargeCircle;
 use App\Models\Member;
 use App\Models\MemberIncome;
 use App\Models\MemberWallet;
@@ -22,6 +23,7 @@ class MiscApiController extends Controller
 {
     private $recharge_token_url = 'https://api.pay2all.in/token';
     private $recharge_providers_url ='https://api.pay2all.in/v1/app/providers';
+    private $circle_url = 'https://api.pay2all.in/v1/app/circle';
     private $recharge_email = 'anil058@gmail.com';
     private $recharge_secret = 'Bxunjr';
     
@@ -34,6 +36,34 @@ class MiscApiController extends Controller
     private $sttoArray = Array();
 
     private $cto = 0;
+
+    private function updateCircles($token){
+        $client = new Client();
+        $response = $client->request(
+            'GET',
+            $this->circle_url,
+            ['headers' => 
+                [
+                    'Authorization' => "Bearer {$token}"
+                ]
+            ]
+        );
+
+        if($response->getStatusCode() == 200 ){
+            $ret = $response->getBody()->getContents();
+            $json = json_decode($ret, true);
+            RechargeCircle::truncate();
+            foreach($json['data'] as $i => $v)
+            {
+                $tblCircle = new RechargeCircle();
+                $tblCircle->circle_id = $v['id'];
+                $tblCircle->circle_name = $v['circle_name'];
+                $tblCircle->status = $v['status'];
+                $tblCircle->save();
+            }
+
+        }
+    }
 
     public function updateRechargeServices(Request $request){
         try {
@@ -74,6 +104,7 @@ class MiscApiController extends Controller
                     $tblRechargeServices->save();
                 }
             }
+            $this->updateCircles($token);
 
             return true;
         } catch(Exception $e){
