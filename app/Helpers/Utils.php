@@ -37,9 +37,9 @@ function generateNewMemberOTP($mobile_no) {
     try{
         $expiryDate = Carbon::now()->addMinute(10);
         $tblTempMember = TempMember::where('mobile_no',$mobile_no)->first();
-        if($tblTempMember == null){
-            return false;
-        }
+        // if($tblTempMember == null){
+        //     return false;
+        // }
         $otp = '1111'; // newOTP();
         $msg = urlencode("OTP is ".$otp." for Mansha Real Rupees");
         $tblOTP = Otp::where('mobile_no', $mobile_no)->first();
@@ -58,8 +58,8 @@ function generateNewMemberOTP($mobile_no) {
 
         sendSMS($mobile_no,$msg);
 
-        // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
-        // $response1 = Http::get($url);
+        $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=" . $mobile_no . "&text=".$msg."&priority=ndnd&stype=normal";
+        $response1 = Http::get($url);
         return true;
     } catch(\Exception $e){
         return false;
