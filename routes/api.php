@@ -80,6 +80,8 @@ Route::post('/memberrewards', [TranApiController::class,'MemberRewards'])->middl
 // Route::post('/updatepayment', [ApiAuthController::class,'updatePaymentStatus'])->middleware('api.key');
 
 Route::get('/updaterechargeservices', [MiscApiController::class,'updateRechargeServices']); //->middleware('api.key');
+Route::get('/updatepaymenttoken', [MiscApiController::class,'updateRechargeToken']); //->middleware('api.key');
+
 
 Route::post('/getproviders', [RechargeController::class,'GetProviders'])->middleware('api.key');
 Route::post('/rechargemobile', [RechargeController::class,'RechargeMobile'])->middleware('api.key');; //->middleware('api.key');
