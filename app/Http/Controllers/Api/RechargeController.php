@@ -154,8 +154,8 @@ class RechargeController extends Controller
             $client = new Client();
             $res = $client->request('POST', $this->mobilePlanUrl, [
                 'form_params' => [
-                    'provider_id' => "2",
-                    'circle_id' => "18",
+                    'provider_id' => $request->provider_id,
+                    'circle_id' => $request->circle_id,
                 ],
                 'headers' => 
                 [
@@ -172,7 +172,7 @@ class RechargeController extends Controller
                     'RATE CUTTER' => $json['data']['RATE CUTTER'],
                     '2G' => $json['data']['2G'],
                     'SMS' => $json['data']['SMS'],
-                    'Romaing' => $json['data']['Romaing'],
+                    'Romaing' => $json['data']['COMBO'],
                     'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
                 ];
             } else {

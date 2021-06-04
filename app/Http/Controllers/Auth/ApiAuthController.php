@@ -315,6 +315,12 @@ class ApiAuthController extends Controller
                 return response($response, 200);
             }
 
+            $tblMember = MemberUser::where('mobile_no', $request->mobile_no)->first();
+            if($tblMember != null){
+                $response = ['status' => false, 'message' => 'User already exists'];
+                return response($response, 200);
+            }
+
             if(generateNewMemberOTP($request->mobile_no) == true){
                 $response = ['status' => true, 'message' => 'OTP Generated'];
                 // $url = "http://bulksms.tejasgroup.co.in/api/sendmsg.php?user=manshaa&pass=manshaa&sender=MRECOM&phone=9835718779&text=Test%20SMS&priority=ndnd&stype=normal";
@@ -354,6 +360,7 @@ class ApiAuthController extends Controller
                 return response($response, 200);
             }
     
+            $curTime = Carbon::now();
             if($tblOTP->expiry_at < Carbon::now()) {
                 $response = ['status' => false, 'message' => 'Invalid Mobile or OTP'];
                 return response($response, 200);
