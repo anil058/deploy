@@ -97,6 +97,7 @@ class MiscApiController extends Controller
                 foreach($json['providers'] as $i => $v)
                 {
                     $tblRechargeServices = new RechargeProvider();
+                    $tblRechargeServices->provider_id = $v['id'];
                     $tblRechargeServices->provider_name = $v['provider_name'];
                     $tblRechargeServices->service_id = $v['service_id'];
                     $tblRechargeServices->description = $v['description'];

@@ -15,6 +15,7 @@ class CreateRechargeProvidersTable extends Migration
     {
         Schema::create('recharge_providers', function (Blueprint $table) {
             $table->id();
+            $table->integer('provider_id')->nullable()->unsigned()->index();
             $table->string('provider_name')->index();
             $table->integer('service_id')->nullable()->unsigned()->index();
             $table->string('description')->nullable();

@@ -172,7 +172,7 @@ class RechargeController extends Controller
                     'RATE CUTTER' => $json['data']['RATE CUTTER'],
                     '2G' => $json['data']['2G'],
                     'SMS' => $json['data']['SMS'],
-                    'Romaing' => $json['data']['COMBO'],
+                    'Romaing' => $json['data']['Romaing'],
                     'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
                 ];
             } else {
