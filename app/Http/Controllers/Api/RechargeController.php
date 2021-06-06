@@ -93,15 +93,15 @@ class RechargeController extends Controller
 
     public function GetProviders(Request $request){
         try{
-            $tblProviders = RechargeProvider::where('service_id', 1)->get(['id','provider_name']);
+            $tblProviders = RechargeProvider::where('service_id', 1)->get(['provider_id as id','provider_name']);
             // $tblMember = Member::where('member_id', $request->user()->id)->first();
             $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
             $tblCircles = RechargeCircle::all();
 
             $response = ['status' => true, 
-                'welcome' => strval($tblMemberWallet->welcome_amt),
-                'redeemable' => strval( $tblMemberWallet->redeemable_amt),
-                'non-redeemable' => strval( $tblMemberWallet->non_redeemable),
+                'welcome' => strval(round($tblMemberWallet->welcome_amt)),
+                'redeemable' => strval(round($tblMemberWallet->redeemable_amt)),
+                'non-redeemable' => strval(round($tblMemberWallet->non_redeemable)),
                 'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
                 'providers' => $tblProviders,
                 'circles' => $tblCircles
@@ -148,8 +148,10 @@ class RechargeController extends Controller
                 return response()->json(['status' => false, 'message' => $errors]);
             }
 
-            $token = Param::where("id", 4)->first()->long_text;
+            $miscApiController = new MiscApiController();
+            // $token = Param::where("id", 4)->first()->long_text;
 
+            $token = $miscApiController->updateRechargeToken();
 
             $client = new Client();
             $res = $client->request('POST', $this->mobilePlanUrl, [
@@ -166,15 +168,71 @@ class RechargeController extends Controller
         
             if($res->getStatusCode() == 200){
                 $json = json_decode($res->getBody(), true);
+                
+                // //Experimenting
+                // $allKeys = array_keys($json['data']);
+                // $response = array();
+                // $response['status'] =  true;
+                // foreach ($allKeys as $key) {
+                //     $response['data'][$key] =  $json['data'][$key];
+                // }
+                // $response['message'] =  'Balance will be deducted in order Non-redeemable -> Redeemable';
+                // //End Experimenbt
+                
+                $lfulltt = array();
+                $ltopup = array();
+                $l3g4g = array();
+                $lratecutter =  array();
+                $l2g =  array();
+                $lsms = array();
+                $lcombo = array();
+                $lroaming = array();
+                $lfrc = array();
+
+                $data = $json['data'];
+
+                if (array_key_exists("FULLTT",$data))
+                    $lfulltt = $data['FULLTT'];
+                if (array_key_exists("TOPUP",$data))
+                    $ltopup = $data['TOPUP'];
+                if (array_key_exists("3G/4G",$data))
+                    $l3g4g = $data['3G/4G'];
+                if (array_key_exists("RATE CUTTER",$data))
+                    $lratecutter =  $data['RATE CUTTER'];
+                if (array_key_exists("2G",$data))
+                    $l2g =  $data['2G'];
+                if (array_key_exists("SMS",$data))
+                    $lsms = $data['SMS'];
+                if (array_key_exists("COMBO",$data))
+                    $lcombo = $data['COMBO'];
+                if (array_key_exists("Romaing",$data))
+                    $lroaming = $data['Romaing'];
+                if (array_key_exists("FRC",$data))
+                    $lfrc = $data['FRC'];
+
                 $response = ['status' => true, 
-                    'TOPUP' => $json['data']['TOPUP'],
-                    '3G4G' => $json['data']['3G/4G'],
-                    'RATE CUTTER' => $json['data']['RATE CUTTER'],
-                    '2G' => $json['data']['2G'],
-                    'SMS' => $json['data']['SMS'],
-                    'Romaing' => $json['data']['Romaing'],
+                    'FULLTT' => $lfulltt,
+                    'TOPUP' => $ltopup,
+                    '3G4G' => $l3g4g,
+                    'RATE CUTTER' => $lratecutter,
+                    'COMBO' => $lcombo,
+                    '2G' => $l2g,
+                    'SMS' => $lsms,
+                    'Romaing' => $lroaming,
+                    'FRC' => $lfrc,
                     'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
                 ];
+
+
+                // $response = ['status' => true, 
+                //     'TOPUP' => $json['data']['TOPUP'],
+                //     '3G4G' => $json['data']['3G/4G'],
+                //     'RATE CUTTER' => $json['data']['RATE CUTTER'],
+                //     '2G' => $json['data']['2G'],
+                //     'SMS' => $json['data']['SMS'],
+                //     'Romaing' => $json['data']['Romaing'],
+                //     'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
+                // ];
             } else {
                 $response = ['status' => false, 
                     'message' => 'Could not Fetch data',

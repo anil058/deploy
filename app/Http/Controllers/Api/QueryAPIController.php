@@ -215,5 +215,21 @@ class QueryAPIController extends Controller
         
     }
 
+    public function GetMobileRechargeHistory(Request $request){
+        try{
+            $sql = "SELECT mobile_no,provider_name,amount,date_format(created_at,'%d/%m/%Y') tran_date
+                FROM recharge_requests
+                WHERE Verified=1 and member_id = ". $request->user()->id;
+            $records = DB::select($sql);
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["data"]=$records;
+            return response($response,200);
+        } catch(Exception $ex){
+            $response = ['status' => false, 'message' => $ex->getMessage()];
+            return response($response, 200);
+        }
+    }
+    
 }
 

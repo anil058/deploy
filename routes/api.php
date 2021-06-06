@@ -106,6 +106,8 @@ Route::post('/levelincomequery', [QueryAPIController::class,'GetLevelIncomeQuery
 Route::post('/nonredeemableincomequery', [QueryAPIController::class,'GetNonRedeemableIncomeQuery'])->middleware('api.key');
 Route::post('/transferinquery', [QueryAPIController::class,'GetTransferInQuery'])->middleware('api.key');
 Route::post('/transferoutquery', [QueryAPIController::class,'GetTransferOutQuery'])->middleware('api.key');
+Route::post('/membermobilerecharges', [QueryAPIController::class,'GetMobileRechargeHistory'])->middleware('api.key');
+
 
 //Fund Transfer
 Route::post('/fundtransfer', [RechargeController::class,'FundTransfer'])->middleware('api.key');
