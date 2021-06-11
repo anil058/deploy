@@ -35,10 +35,10 @@ use Illuminate\Support\Facades\Auth;
 /**
  * KNOWLEDGE
  * DB::enableQueryLog();
- * dd(DB::getQueryLog()); 
+ * dd(DB::getQueryLog());
  */
 /**
- * LEARNINGS 
+ * LEARNINGS
  * =============================================================
  * 'last_login_at' => Carbon::now()->toDateTimeString()
  * 'last_login_ip' => $request->getClientIp()
@@ -91,13 +91,13 @@ class MemberAPIController extends Controller
                 'bank_name' => 'required|string|max:30',
                 'account_no' => 'required|string|max:30',
             ]);
-             
+
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
                 $response = ['status' => false, 'message' => $errors];
                 return response($response, 200);
             }
-    
+
             //Check if there is an existing user with same mobile no
             // $tblMember = Member::where('mobile_no', $request->mobile_no)->first();
             $id = $request->user()->id;
@@ -120,7 +120,7 @@ class MemberAPIController extends Controller
 
             $tblMember->save();
 
-            $response = ['status' => true, 
+            $response = ['status' => true,
             'message' => 'Successfully Updated',
             ];
             return response($response, 200);
@@ -138,21 +138,21 @@ class MemberAPIController extends Controller
         try {
             $id = $request->user()->id;
             $tblMember = Member::where('member_id', $id)->first();
-            
+
             $image_path = public_path("/member_images/dummy.jpg");
             $path = public_path("/member_images/") . $tblMember->unique_id;
             if(file_exists($path)){
                 $path = public_path("/member_images/") . $tblMember->unique_id;
                 $files = array_diff(scandir($path), array('.', '..'));
                 $image_path = '';
-    
+
                 foreach($files as $file) {
                     if (strpos( $file,"profile_img.") !== false){
                         $image_path = public_path("/member_images/dummy.jpg");
                     }
                 }
             }
-            
+
 
             // if (strlen($image_path) == 0){
             //     $image_path = public_path("/member_images/dummy.jpg");
@@ -162,7 +162,7 @@ class MemberAPIController extends Controller
             $profile_img = base64_encode($imagedata);
 
             $response = [
-                'status' => true, 
+                'status' => true,
                 'first_name' => $tblMember->first_name,
                 'last_name' => $tblMember->last_name,
                 'father' => $tblMember->father,
@@ -172,7 +172,7 @@ class MemberAPIController extends Controller
                 'image' => $profile_img
                 ];
             return response($response,200);
-    
+
         } catch(Exception $e){
             $response = ['status' => false, 'message' => $e->getMessage()];
             return response($response, 200);
@@ -316,15 +316,15 @@ class MemberAPIController extends Controller
             $validator = Validator::make($request->all(), [
                 'referal_code' => 'required|string|max:10',
             ]);
-    
+
             //General request validation
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
                 return response()->json(['status' => true, 'message' => $errors]);
             }
-    
+
             $tblMember = Member::where('referal_code', $request->referal_code)->first();
-    
+
             if($tblMember == null){
                 return response()->json(['status' => false, 'message' => 'Invalid Referal Code']);
             }
@@ -341,15 +341,15 @@ class MemberAPIController extends Controller
             $validator = Validator::make($request->all(), [
                 'mobile_no' => 'required|string|max:10',
             ]);
-    
+
             //General request validation
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
                 return response()->json(['status' => true, 'message' => $errors]);
             }
-    
+
             $tblMember = Member::where('mobile_no', $request->mobile_no)->first();
-    
+
             if($tblMember == null){
                 return response()->json(['status' => true, 'message' => 'Invalid Referal Code']);
             }
@@ -449,7 +449,7 @@ class MemberAPIController extends Controller
                 "address" => "string|max:200",
                 // "otp" => "required|numeric|min:1000|max:9999",
             ]);
-             
+
             // $txn_id = $this->newTxnID();
             // $txn_id = createRazorpayTempOrder()
             // dd($txn_id);
@@ -475,7 +475,7 @@ class MemberAPIController extends Controller
                 }
             }
             // $this->populateParams();
-    
+
             //Check if referal code is valid
             // $tblReferal = Referal::where('referal_code', $request->referal_code)
             //                 ->whereDate('expiry_at', '>=', Carbon::now()->toDateString())
@@ -516,7 +516,7 @@ class MemberAPIController extends Controller
             $taxPercent = $this->TAX_PERCENT;
             $taxAmount = round($this->MEMBERSHIP_FEE * $this->TAX_PERCENT * 0.01,2);
             $netAmount = $this->MEMBERSHIP_FEE + $taxAmount;
-            
+
             $tempUser->membership_fee = $membershipFee;
             $tempUser->tax_percent = $taxPercent;
             $tempUser->tax_amount = $taxAmount;
@@ -525,7 +525,7 @@ class MemberAPIController extends Controller
             $tempUser->expiry_at = Carbon::now()->addDays(3);
             $tempUser->ip = $request->ip();
             $tempUser->save();
-           
+
             generateNewMemberOTP($request->mobile_no);
 
             $orderid = "";
@@ -534,9 +534,9 @@ class MemberAPIController extends Controller
                 throw new Exception("Could not generate order id");
             }
             DB::commit();
-            $response = ['status' => true, 
-            'temp_id' => $tempUser->id, 
-            'txn_id' => $orderid, 
+            $response = ['status' => true,
+            'temp_id' => $tempUser->id,
+            'txn_id' => $orderid,
             'message' => 'Successfully Created Temporary User',
             'fee_amount' => $netAmount * 100
             ];
@@ -547,9 +547,9 @@ class MemberAPIController extends Controller
             return response($response, 200);
         }
     }
-    
 
-   
+
+
     /**
      * Extract and Fill arrayParents for current member
      * ------------------------------------------------------------------> Masters/ References
@@ -577,8 +577,8 @@ class MemberAPIController extends Controller
             $this->arrayLevelMaster[] = $rec;
         }
     }
-    
-    
+
+
 
     //Get Level Commission Percent ***************************** called by updateLevelIncomes()
     private function getCommissionPercent($levelCtr){
@@ -590,7 +590,7 @@ class MemberAPIController extends Controller
         }
         return 0;
     }
-   
+
     //Create new member code************************************ called by addMember()
     public function newMemberCode()
     {
@@ -602,7 +602,7 @@ class MemberAPIController extends Controller
         $param->save();
         $memberCode = $prefix . Str::padLeft($intValue,9,'0');
         return $memberCode;
-    } 
+    }
 
     /**
      * updatePaymentStatus************************************** called by addMember()
@@ -620,7 +620,7 @@ class MemberAPIController extends Controller
         $tblMemberUser->save();
 
         $request->member_id = $tblMemberUser->id;
-        
+
         $request->api_token = $token;
     }
 
@@ -667,19 +667,19 @@ class MemberAPIController extends Controller
      * 1. Find Parent of the member in question in member_maps table with level_ctr<=10
      * 2. Add a record in member_maps for the current member with level_ctr=1
      * 3. Add all the records from step 1 with levelctr+=1
-     * 
+     *
      */
     private function mapMember(Request $request){
         $tblMemberMap = MemberMap::where('member_id',$request->parent_id)
                         ->get();
         MemberMap::create([
-            'member_id' => $request->member_id, 
+            'member_id' => $request->member_id,
             'parent_id' => $request->parent_id,
             'level_ctr' => 1]);
-        
+
         foreach ($tblMemberMap as $memberMap){
             MemberMap::create([
-                'member_id' => $request->member_id, 
+                'member_id' => $request->member_id,
                 'parent_id' => $memberMap->parent_id,
                 'level_ctr' => $memberMap->level_ctr + 1]);
         };
@@ -701,7 +701,7 @@ class MemberAPIController extends Controller
         //======================================
         //Update Member Income if there is a candidate
         $tblMemberMap = MemberMap::where('member_id',$request->member_id)->get();
-        
+
         $tblMember = Member::where('member_id',$request->parent_id)->first();
 
         $l_Leadership1_beneficiary = $tblMember->parent_id;
@@ -711,13 +711,10 @@ class MemberAPIController extends Controller
             $level_ctr = $memberMap->level_ctr; // + 1;
             //Calculate Level Commission
             if($level_ctr < 13){
-//Update member Count in member wallet
+
                 $memberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
                 $memberWallet->total_members += 1;
                 $memberWallet->save();
-
-
-//************************************* */
 
                 $l_levelPercent = $this->getCommissionPercent($level_ctr);
                 $l_commission = $request->member_fee * $l_levelPercent * 0.01;
@@ -810,7 +807,7 @@ class MemberAPIController extends Controller
      ************************************************************* called by updatePaymentStatus()
      */
     private function updateClub(){
-        //loop through all the parents of newly created member        
+        //loop through all the parents of newly created member
         foreach($this->arrayParents as $parent){
             //fill DownlinesArray of the parentmember
             $downlineArray = array();
@@ -846,7 +843,7 @@ class MemberAPIController extends Controller
             $goldCount = $this->getHierarchyClubCount($downlineArray, 4);
             $diamondCount = $this->getHierarchyClubCount($downlineArray, 5);
             $royaltyCount = $this->getHierarchyClubCount($downlineArray, 6);
-    
+
             //loop through all the clubs
             foreach($this->arrayClubMaster as $club){
                 $bronzRequired = $club->bronz_req;
@@ -855,14 +852,14 @@ class MemberAPIController extends Controller
                 $diamondRequired = $club->diamond_req;
                 $royaltyRequired = $club->royalty_req;
 
-                //Bronz Achiever 
+                //Bronz Achiever
                 if($club->id == 2){
                     $flag = false;
                     foreach($clubAchieversArray as $achiever){
                         if($achiever->designation_id == 2)
                             $flag = true;
                     }
-    
+
                     if($flag == false){
                         $level0Members = $this->getDownlineLevelCount($childLevelCountArray, 0);
                         if($level0Members >= $club->level_req_members){
@@ -871,16 +868,16 @@ class MemberAPIController extends Controller
                             $tblClubAchiever->designation_id = 2;
                             $tblClubAchiever->tran_date = Carbon::now();
                             $tblClubAchiever->save();
-    
+
                             $tblMember = Member::where('member_id', $parent->member_id)->first();
                             $tblMember->designation_id = 2;
                             $tblMember->save();
                         }
                     }
                 }
-                
 
-                //Silver Achiever 
+
+                //Silver Achiever
                 if($club->id == 3){
                     $flag = false;
                     //Check if already silver achiever
@@ -900,10 +897,10 @@ class MemberAPIController extends Controller
                         if (!(($diamondRequired > 0) && ($diamondCount >= $diamondRequired)))
                             $flag = false;
                         if (!(($royaltyRequired > 0) && ($royaltyCount >= $royaltyRequired)))
-                            $flag = false;  
+                            $flag = false;
                         if($level3Members < $club->level_req_members)
-                            $flag = false;  
-    
+                            $flag = false;
+
                         if($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
@@ -911,16 +908,16 @@ class MemberAPIController extends Controller
                             $tblClubAchiever->designation_id = 3;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
-    
+
                             $tblMember = Member::where('member_id', $parent->member_id)->first();
                             $tblMember->designation_id = 3;
                             $tblMember->save();
                         }
                     }
                 }
-                
-                
-                //Gold Achiever 
+
+
+                //Gold Achiever
                 if($club->id == 4){
                     $flag = false;
                     //Check if already gold achiever
@@ -940,10 +937,10 @@ class MemberAPIController extends Controller
                         if (!(($diamondRequired > 0) && ($diamondCount >= $diamondRequired)))
                             $flag = false;
                         if (!(($royaltyRequired > 0) && ($royaltyCount >= $royaltyRequired)))
-                            $flag = false;  
+                            $flag = false;
                         if($level6Members < $club->level_req_members)
-                            $flag = false;  
-    
+                            $flag = false;
+
                         if($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
@@ -951,16 +948,16 @@ class MemberAPIController extends Controller
                             $tblClubAchiever->designation_id = 4;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
-    
+
                             $tblMember = Member::where('member_id', $parent->member_id)->first();
                             $tblMember->designation_id = 4;
                             $tblMember->save();
                         }
                     }
                 }
-                
 
-                //Diamond Achiever 
+
+                //Diamond Achiever
                 if($club->id == 5){
                     $flag = false;
                     //Check if already diamond achiever
@@ -980,10 +977,10 @@ class MemberAPIController extends Controller
                         if (!(($diamondRequired > 0) && ($diamondCount >= $diamondRequired)))
                             $flag = false;
                         if (!(($royaltyRequired > 0) && ($royaltyCount >= $royaltyRequired)))
-                            $flag = false;  
+                            $flag = false;
                         if($level9Members < $club->level_req_members)
-                            $flag = false;  
-                        
+                            $flag = false;
+
                         if($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
@@ -991,16 +988,16 @@ class MemberAPIController extends Controller
                             $tblClubAchiever->designation_id = 5;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
-    
+
                             $tblMember = Member::where('member_id', $parent->member_id)->first();
                             $tblMember->designation_id = 5;
                             $tblMember->save();
                         }
                     }
                 }
-                
-                
-                //Royalty Achiever 
+
+
+                //Royalty Achiever
                 if($club->id == 6){
                     $flag = false;
                     //Check if already royalty achiever
@@ -1020,9 +1017,9 @@ class MemberAPIController extends Controller
                         if (!(($diamondRequired > 0) && ($diamondCount >= $diamondRequired)))
                             $flag = false;
                         if (!(($royaltyRequired > 0) && ($royaltyCount >= $royaltyRequired)))
-                            $flag = false;  
+                            $flag = false;
                         if($level12Members < $club->level_req_members)
-                            $flag = false; 
+                            $flag = false;
                         if ($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
@@ -1030,7 +1027,7 @@ class MemberAPIController extends Controller
                             $tblClubAchiever->designation_id = 6;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
-    
+
                             $tblMember = Member::where('member_id', $parent->member_id)->first();
                             $tblMember->designation_id = 6;
                             $tblMember->save();
@@ -1083,7 +1080,7 @@ class MemberAPIController extends Controller
         //     $l_currentLevel = $m->level_ctr;
 
         //     // $l_memberCount = $m->member_count + 1;
-            
+
         //     if($l_calculatedLevel != $l_currentLevel){
         //         DB::update('update members set current_level = ? where member_id = ?',[$l_calculatedLevel,$l_memberID]);
         //         $l_reward = $this->getLevelReward($l_calculatedLevel);
@@ -1111,16 +1108,27 @@ class MemberAPIController extends Controller
      ************************************************************* called by updatePaymentStatus()
      */
     private function addRechargePoints($request){
-        // $tbl = new RechargePointRegister();
-        // $tbl->member_id = $request->member_id;
-        // $tbl->ref_member_id = $request->member_id;
-        // $tbl->payment_id = $request->payment_int_id;
-        // $tbl->tran_type = 'MEMBERSHIP_BONUS';
-        // $tbl->tran_date = date('Y-m-d H:i:s');
-        // $tbl->recharge_points_added = $this->MEMBERSHIP_POINTS;
-        // $tbl->balance_points += $this->MEMBERSHIP_POINTS;
-        // $tbl->save();
-    }    
+        $tblMemberMap = MemberMap::where('member_id',$request->member_id)->get();
+        $this->addRechargePointRecord($request->member_id, $request->member_id, $request->payment_int_id);
+
+
+        foreach ( $tblMemberMap as $memberMap){
+            $this->addRechargePointRecord($memberMap->member_id, $request->member_id, $request->payment_int_id);
+        };
+    }
+
+    private function addRechargePointRecord($member_id, $ref_member_id,$payment_id){
+        $tblMemberWallet = MemberWallet::where('member_id', $member_id)->first();
+        $tbl = new RechargePointRegister();
+        $tbl->member_id = $member_id;
+        $tbl->ref_member_id = $ref_member_id;
+        $tbl->payment_id = $payment_id;
+        $tbl->tran_type = 'MEMBERSHIP_BONUS';
+        $tbl->tran_date = date('Y-m-d H:i:s');
+        $tbl->recharge_points_added = $this->MEMBERSHIP_POINTS;
+        $tbl->balance_points += $tblMemberWallet->non_redeemable + $this->MEMBERSHIP_POINTS;
+        $tbl->save();
+    }
 
     private function updateMemberWallet($member_id){
         $tbl1 = new MemberWallet();
@@ -1143,7 +1151,7 @@ class MemberAPIController extends Controller
      private function getHierarchyClubCount($arr, $clubID){
         $cnt = 0;
         foreach($arr as $m){
-            if ($m->designation_id == $clubID) 
+            if ($m->designation_id == $clubID)
             {
                 $cnt++;
             }
@@ -1157,7 +1165,7 @@ class MemberAPIController extends Controller
     private function getDownlineLevelCount($arr, $levelCtr){
         $cnt = 0;
         foreach($arr as $m){
-            if ($m->level_ctr == $levelCtr) 
+            if ($m->level_ctr == $levelCtr)
             {
                 return $m->level_count;
             }
@@ -1165,11 +1173,11 @@ class MemberAPIController extends Controller
         return 0;
     }
 
-    
+
     // private function getQualifyingClubMembers($clubID, $designationID){
     //     $req = 0;
     //     foreach($this->arrayClubMaster as $club){
-    //         if ($club->id == $clubID) 
+    //         if ($club->id == $clubID)
     //         {
     //             switch($designationID){
     //                 case 2: //bronz
@@ -1184,7 +1192,7 @@ class MemberAPIController extends Controller
     //                 case 5: //bronz
     //                     $req = $club->diamond_req;
     //                     break;
-    
+
     //             }
     //         }
     //     }
@@ -1230,9 +1238,9 @@ class MemberAPIController extends Controller
     //     }
     // }
 
- 
+
     // private function getClub($count){
-       
+
     //     foreach($this->arrayLevelWiseMemberCount as $m){
     //         if (($m->required_members >= $count)  && ($m->level_ctr))
     //         {
@@ -1270,16 +1278,16 @@ class MemberAPIController extends Controller
     //     $param->save();
     //     $retVal = $prefix.$dt1. Str::padLeft($intValue,5,'0');
     //     return $retVal;
-    // } 
+    // }
 
-     
+
 
     /**
      * UPDATE PAYMENT STATUS AS REPORTED BY MOBILE APP
      * ======================================================================
      * If success => Create new Member and MemberUser
      *            => update Member table with temp_id
-     * 
+     *
      * Methods to Invoke
      *      1. createMemberUser
      *      2. addMember
@@ -1297,15 +1305,15 @@ class MemberAPIController extends Controller
     // private function updateDesignation(Request $request){
 
     // }
-    
+
     // /**
     //  * 5. Update Mobile Recharge Points
     //  * ==============================================
-    //  * 30 points added to recharge wallet 
+    //  * 30 points added to recharge wallet
     //  * [add in recharge_point_register]
     //  */
     // private function updateMobileRechargePoints(){
-        
+
 
     // }
 
@@ -1319,8 +1327,8 @@ class MemberAPIController extends Controller
     //         $current_level = $parent->current_level;
     //         $new_level = $current_level;
 
-           
-            
+
+
     //         $cnt = MemberMap::where('member_id',$parent->member_id)->get()->count();
     //         switch(true){
     //             case ($cnt >= $this->ROYALTY_REQ_NUM):
@@ -1350,7 +1358,7 @@ class MemberAPIController extends Controller
 
     //     }
     // }
-   
+
 
     // //Not needed at this point of time
     // private function updateRewardIncome(){
