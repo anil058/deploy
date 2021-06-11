@@ -14,6 +14,7 @@ use App\Models\MemberDeposit;
 use App\Models\MemberRewards;
 use App\Models\MemberMap;
 use App\Models\MemberWallet;
+use App\Models\RechargePointRegister;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -69,55 +70,56 @@ class TranApiController extends Controller
             $validator = Validator::make($request->all(), [
                 'amount' => 'required|numeric'
                 ]);
-    
+
             //General request validation
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
                 return response()->json(['status' => false, 'message' => $errors]);
             }
-    
+
             $this->populateParams();
-            
+
             $result = createRazorpayMoneyOrder($request->user()->id, $request->amount, $this->TAX_PERCENT);
             if(count($result) != 2){
-                $response = ['status' => false, 
+                $response = ['status' => false,
                 'message' => 'Could not create payment order',
                 ];
                 return response($response, 200);
             }
-            $response = ['status' => true, 
+            $response = ['status' => true,
             'id' => $result['id'],
-            'txn_id' => $result['txn_id'], 
+            'txn_id' => $result['txn_id'],
             'amount' => $request->amount,
             'message' => 'Successfully Created Payment Order',
             ];
             return response($response, 200);
 
             // if(strlen($orderid) == 0){
-            //     $response = ['status' => false, 
+            //     $response = ['status' => false,
             //     'message' => 'Could not create payment order',
             //     ];
             //     return response($response, 200);
             // }
-            // $response = ['status' => true, 
+            // $response = ['status' => true,
             // 'ID' => 0,
-            // 'txn_id' => $orderid, 
+            // 'txn_id' => $orderid,
             // 'amount' => $request->amount,
             // 'message' => 'Successfully Created Payment Order',
             // ];
             // return response($response, 200);
-   
+
         } catch(Exception $e) {
-                $response = ['status' => false, 
+                $response = ['status' => false,
                 'message' => 'Could not create payment order',
                 ];
                 return response($response, 200);
-        }     
+        }
     }
 
     public function AddMoney(Request $request){
         DB::beginTransaction();
         try{
+            $flag = true;
             //Validate Input
             $validator = Validator::make($request->all(), [
                 'id' => 'required|numeric',
@@ -133,7 +135,7 @@ class TranApiController extends Controller
                 $errors = $validator->errors()->first();
                 return response()->json(['status' => false, 'message' => $errors]);
             }
-    
+
             //Validate against PaymentGateway table
             $tblPaymentGateway = PaymentGateway::find($request->id);
 
@@ -162,6 +164,7 @@ class TranApiController extends Controller
                     $tblPaymentGateway->fake = false;
                     $tblPaymentGateway->closed =true;
                     $tblPaymentGateway->save();
+                    $flag = false;
                     break;
                 default:
                     // $tblPaymentGateway->payment_id = $request->payment_id;
@@ -171,23 +174,38 @@ class TranApiController extends Controller
                     $tblPaymentGateway->fake = false;
                     $tblPaymentGateway->closed =false;
                     $tblPaymentGateway->save();
+                    $flag = false;
                     break;
             }
 
-            $tblMemberDeposits = new MemberDeposit();
-            $tblMemberDeposits->member_id = $request->user()->id;
-            $tblMemberDeposits->gateway_id = $tblPaymentGateway->id;
-            $tblMemberDeposits->amount = $tblPaymentGateway->amount;
-            $tblMemberDeposits->tax_percent = $tblPaymentGateway->tax_percent;
-            $tblMemberDeposits->tax_amount = $tblPaymentGateway->tax_amount;
-            $tblMemberDeposits->net_amount = $tblPaymentGateway->net_amount;
-            $tblMemberDeposits->deposit_type = 'TOPUP';
-            $tblMemberDeposits->save();
+            if($flag == true){
+                $tblMemberDeposits = new MemberDeposit();
+                $tblMemberDeposits->member_id = $request->user()->id;
+                $tblMemberDeposits->gateway_id = $tblPaymentGateway->id;
+                $tblMemberDeposits->amount = $tblPaymentGateway->amount;
+                $tblMemberDeposits->tax_percent = $tblPaymentGateway->tax_percent;
+                $tblMemberDeposits->tax_amount = $tblPaymentGateway->tax_amount;
+                $tblMemberDeposits->net_amount = $tblPaymentGateway->net_amount;
+                $tblMemberDeposits->deposit_type = 'TOPUP';
+                $tblMemberDeposits->save();
 
-            $tblMemberWallet = MemberWallet::find( $request->user()->id);
-            $tblMemberWallet->non_redeemable = $tblPaymentGateway->amount;
-            $tblMemberWallet->save();
-            
+                $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
+                $tblMemberWallet->non_redeemable = $tblMemberWallet->non_redeemable + $tblPaymentGateway->amount;
+                $tblMemberWallet->save();
+
+                $tblRechargePointRegister = new RechargePointRegister();
+                $tblRechargePointRegister->member_id = $request->user()->id;
+                $tblRechargePointRegister->ref_member_id = $request->user()->id;
+                $tblRechargePointRegister->tran_date = date("Y-m-d H:i:s");
+                $tblRechargePointRegister->payment_id = $tblPaymentGateway->id;
+                $tblRechargePointRegister->recharge_points_added = $tblPaymentGateway->amount;
+                $tblRechargePointRegister->balance_points =  $tblMemberWallet->non_redeemable;
+                $tblRechargePointRegister->tran_type = 'PAID';
+                $tblRechargePointRegister->remarks = 'Amount Recharged';
+                $tblRechargePointRegister->save();
+
+            }
+
             DB::commit();
             $response = ['status' => true, 'message' => 'Successfully Added Money'];
             return response($response, 200);
@@ -212,15 +230,15 @@ class TranApiController extends Controller
                 $val['recharge_on'] = Carbon::parse($rec->created_at)->format('d/m/Y');
                 array_push($arr,$val);
             }
-            $response = ['status' => true, 
+            $response = ['status' => true,
             'message' => 'successfully Added',
             'data' => $arr
             ];
 
-            return $response;
+            return response($response, 200);
 
         } catch(Exception $e){
-            $response = ['status' => false, 
+            $response = ['status' => false,
             'message' => 'Could not Fetch Data',
             ];
             return response($response, 200);
@@ -307,7 +325,7 @@ class TranApiController extends Controller
                 SELECT level_ctr, COUNT(level_ctr) cnt
                 FROM member_maps m
                 WHERE m.parent_id=".$request->member_id."
-                GROUP BY level_ctr            
+                GROUP BY level_ctr
             ";
 
             $tblCnt = DB::select($sql);
@@ -600,7 +618,7 @@ class TranApiController extends Controller
                     WHERE parent_id=1
                     GROUP BY level_ctr) AS a ON m.`level` = a.level_ctr";
 
-                    
+
             $records = DB::select($sql);
             $response['status'] = true;
             $response['message'] = 'Success';

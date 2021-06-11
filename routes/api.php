@@ -48,7 +48,7 @@ Route::group(['middleware' => ['cors', 'json.response', 'api.key']], function ()
     Route::post('/updatememberinfo', [MemberAPIController::class, 'updateMemberInfo']);
     Route::post('/saveuserimage', [UserImageController::class,'saveUserImage']);
     Route::post('/getmemberinfo', [MemberAPIController::class,'getMemberInfo']);
-    
+
     Route::post('/showuser', [MemberAPIController::class,'showUser']);
     Route::post('/changepassword', [ApiAuthController::class,'changePassword']);
 
@@ -107,6 +107,7 @@ Route::post('/nonredeemableincomequery', [QueryAPIController::class,'GetNonRedee
 Route::post('/transferinquery', [QueryAPIController::class,'GetTransferInQuery'])->middleware('api.key');
 Route::post('/transferoutquery', [QueryAPIController::class,'GetTransferOutQuery'])->middleware('api.key');
 Route::post('/membermobilerecharges', [QueryAPIController::class,'GetMobileRechargeHistory'])->middleware('api.key');
+Route::post('/memberwallet', [QueryAPIController::class,'GetMemberWallet'])->middleware('api.key');
 
 
 //Fund Transfer

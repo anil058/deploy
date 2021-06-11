@@ -103,7 +103,7 @@ class QueryAPIController extends Controller
                 Rule::in(['ALL', 'RANGE']),
             ],
         ]);
- 
+
         //General request validation
         if ($validator->fails()) {
             $errors = $validator->errors()->first();
@@ -158,7 +158,7 @@ class QueryAPIController extends Controller
                 Rule::in(['ALL', 'RANGE']),
             ],
         ]);
- 
+
         //General request validation
         if ($validator->fails()) {
             $errors = $validator->errors()->first();
@@ -192,7 +192,7 @@ class QueryAPIController extends Controller
                     WHERE (date(r.created_at) BETWEEN str_to_date('".$request->start_date."','%d/%m/%Y') AND str_to_date('".$request->end_date."','%d/%m/%Y')) and (r.member_id = ". $request->user()->id.") ORDER BY r.created_at desc";
                 $l_message = $request->start_date.' and '.$request->end_date;
             }
-        
+
             $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
 
             $records = DB::select($sql);
@@ -208,11 +208,11 @@ class QueryAPIController extends Controller
     }
 
     public function GetTransferInQuery(Request $request){
-        
+
     }
 
     public function GetTransferOutQuery(Request $request){
-        
+
     }
 
     public function GetMobileRechargeHistory(Request $request){
@@ -230,6 +230,22 @@ class QueryAPIController extends Controller
             return response($response, 200);
         }
     }
-    
+
+    public function GetMemberWallet(Request $request){
+        try{
+            $sql = "SELECT member_id,total_members,welcome_amt,redeemable_amt,non_redeemable,level_income,leadership_income,club_income,transferin_amount,transferout_amount
+            FROM member_wallets
+            WHERE member_id=". $request->user()->id;
+
+            $records = DB::select($sql);
+            $response['status'] = true;
+            $response['message'] = 'Success';
+            $response["data"]=$records;
+            return response($response,200);
+        } catch(Exception $ex){
+            $response = ['status' => false, 'message' => $ex->getMessage()];
+            return response($response, 200);
+        }
+    }
 }
 

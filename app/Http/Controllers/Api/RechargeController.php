@@ -23,15 +23,17 @@ use Carbon\Carbon;
 
 class RechargeController extends Controller
 {
-    private $DEBUG = true;
+    private $DEBUG = false;
     private $RECHARGE_CASHBACK_PERCENT;
     private $ALLOW_MOBILE_RECAHRGE;
     private $MOBILE_WELCOME_ADJUSTMENT_PERCENT;
     private $TEAM_CASHBACK_PERCENT;
+    private $RECHARGE_URL = 'https://api.pay2all.in/v1/payment/recharge';
 
     private $arrayParents = array();
 
     private $mobilePlanUrl = 'https://api.pay2all.in/v1/plan/mobile';
+    // private $mobilePlanUrl = 'https://api.pay2all.in/v1/plan/mobile';
 
     public function __construct()
     {
@@ -44,16 +46,16 @@ class RechargeController extends Controller
             switch($refTable->param){
                 case "RECHARGE_CASHBACK_PERCENT":
                     $this->RECHARGE_CASHBACK_PERCENT = $refTable->int_value;
-                    break;     
+                    break;
                 case "ALLOW_MOBILE_RECAHRGE":
                     $this->ALLOW_MOBILE_RECAHRGE = ($refTable->bool_value == 0) ? false : true;
-                    break;                                       
+                    break;
                 case "MOBILE_WELCOME_ADJUSTMENT_PERCENT":
                     $this->MOBILE_WELCOME_ADJUSTMENT_PERCENT = $refTable->int_value;
-                    break;                                       
+                    break;
                 case "TEAM_CASHBACK_PERCENT":
                     $this->TEAM_CASHBACK_PERCENT = $refTable->int_value;
-                    break;                                       
+                    break;
                 default :
                     $this->ROYALTY_REQ_NUM = 0;
             }
@@ -98,7 +100,7 @@ class RechargeController extends Controller
             $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
             $tblCircles = RechargeCircle::all();
 
-            $response = ['status' => true, 
+            $response = ['status' => true,
                 'welcome' => strval(round($tblMemberWallet->welcome_amt)),
                 'redeemable' => strval(round($tblMemberWallet->redeemable_amt)),
                 'non-redeemable' => strval(round($tblMemberWallet->non_redeemable)),
@@ -108,7 +110,7 @@ class RechargeController extends Controller
             ];
             return response($response, 200);
         } catch(Exception $e){
-            $response = ['status' => false, 
+            $response = ['status' => false,
             'message' => 'Successfully Created Temporary User',
             ];
             return response($response, 200);
@@ -119,7 +121,7 @@ class RechargeController extends Controller
         try{
             $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
 
-            $response = ['status' => true, 
+            $response = ['status' => true,
                 'welcome' => strval($tblMemberWallet->welcome_amt),
                 'redeemable' => strval( $tblMemberWallet->redeemable_amt),
                 'non-redeemable' => strval( $tblMemberWallet->non_redeemable),
@@ -127,7 +129,7 @@ class RechargeController extends Controller
             ];
             return response($response, 200);
         } catch(Exception $e){
-            $response = ['status' => false, 
+            $response = ['status' => false,
             'message' => 'Unable to get balance',
             ];
             return response($response, 200);
@@ -141,7 +143,7 @@ class RechargeController extends Controller
                 'circle_id' => 'required|numeric',
                 'provider_id' => 'required|numeric',
                 ]);
-    
+
             //General request validation
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
@@ -159,16 +161,16 @@ class RechargeController extends Controller
                     'provider_id' => $request->provider_id,
                     'circle_id' => $request->circle_id,
                 ],
-                'headers' => 
+                'headers' =>
                 [
                         'Authorization' => "Bearer {$token}"
                 ]
-                
+
             ]);
-        
+
             if($res->getStatusCode() == 200){
                 $json = json_decode($res->getBody(), true);
-                
+
                 // //Experimenting
                 // $allKeys = array_keys($json['data']);
                 // $response = array();
@@ -178,7 +180,7 @@ class RechargeController extends Controller
                 // }
                 // $response['message'] =  'Balance will be deducted in order Non-redeemable -> Redeemable';
                 // //End Experimenbt
-                
+
                 $lfulltt = array();
                 $ltopup = array();
                 $l3g4g = array();
@@ -210,7 +212,7 @@ class RechargeController extends Controller
                 if (array_key_exists("FRC",$data))
                     $lfrc = $data['FRC'];
 
-                $response = ['status' => true, 
+                $response = ['status' => true,
                     'FULLTT' => $lfulltt,
                     'TOPUP' => $ltopup,
                     '3G4G' => $l3g4g,
@@ -224,7 +226,7 @@ class RechargeController extends Controller
                 ];
 
 
-                // $response = ['status' => true, 
+                // $response = ['status' => true,
                 //     'TOPUP' => $json['data']['TOPUP'],
                 //     '3G4G' => $json['data']['3G/4G'],
                 //     'RATE CUTTER' => $json['data']['RATE CUTTER'],
@@ -234,14 +236,14 @@ class RechargeController extends Controller
                 //     'message' => 'Balance will be deducted in order Non-redeemable -> Redeemable',
                 // ];
             } else {
-                $response = ['status' => false, 
+                $response = ['status' => false,
                     'message' => 'Could not Fetch data',
                 ];
             }
 
         return response($response, 200);
         } catch(Exception $e){
-            $response = ['status' => false, 
+            $response = ['status' => false,
             'message' => 'Unfortunately the request did not yield results',
             ];
             return response($response, 200);
@@ -256,7 +258,7 @@ class RechargeController extends Controller
     //         'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
     //         'amount' => 'required|numeric:max:1000'
     //     ]);
-         
+
     //     if ($validator->fails()) {
     //         $errors = $validator->errors()->first();
     //         $response = ['status' => false, 'message' => $errors];
@@ -288,7 +290,7 @@ class RechargeController extends Controller
     //         $response = $client->request(
     //             'POST',
     //             $this->rechargeUrl,
-    //             ['headers' => 
+    //             ['headers' =>
     //                 [
     //                     'Accept' => "application/json",
     //                     'Authorization' => "Bearer {$token}"
@@ -299,7 +301,7 @@ class RechargeController extends Controller
     //                     'provider_id' => $request->provider_id,
     //                     'client_id' => $client_id,
     //                 ]
-                    
+
     //             ]
     //         );
 
@@ -322,9 +324,9 @@ class RechargeController extends Controller
     //             $tblRechargeRequest->verified = 1;
     //             $tblRechargeRequest->save();
     //             $response = [
-    //                 'status' => $flag, 
+    //                 'status' => $flag,
     //                 'message' =>  $successMessage,
-    //                 'status_id' => $json['status_id'] 
+    //                 'status_id' => $json['status_id']
     //             ];
     //             return response($response, 200);
     //         }
@@ -350,7 +352,7 @@ class RechargeController extends Controller
             'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
             'amount' => 'required|numeric:max:1000'
         ]);
-         
+
         if ($validator->fails()) {
             $errors = $validator->errors()->first();
             $response = ['status' => false, 'message' => $errors];
@@ -370,14 +372,18 @@ class RechargeController extends Controller
         $l_CASHBACK_AMT = $l_AMOUNT * $this->RECHARGE_CASHBACK_PERCENT * 0.01;
 
         //Until Testing make sure no one recharges more than Rs 10
-        if($l_AMOUNT > 10){
-            $response = ['status' => false, 'message' => 'Only upto Rs 10 allowed in test mode'];
+        if($l_AMOUNT > 1000){
+            $response = ['status' => false, 'message' => 'Only upto Rs 1000 allowed in test mode'];
             return response($response, 200);
         }
 
         //Check if welcome amount has sufficient money
-        $l_WELCOME_DEDUCTION = round($l_AMOUNT * $this->MOBILE_WELCOME_ADJUSTMENT_PERCENT * 0.01);
-        if($l_WELCOME_AMT < $l_WELCOME_DEDUCTION){
+        if($request->usewelcomededuction == true){
+            $l_WELCOME_DEDUCTION = round($l_AMOUNT * $this->MOBILE_WELCOME_ADJUSTMENT_PERCENT * 0.01);
+            if($l_WELCOME_AMT < $l_WELCOME_DEDUCTION){
+                $l_WELCOME_DEDUCTION = 0;
+            }
+        } else {
             $l_WELCOME_DEDUCTION = 0;
         }
 
@@ -416,6 +422,8 @@ class RechargeController extends Controller
                     return response($response, 200);
                 }
 
+
+
                 //Recharge to pay2all
                 $request_param = [
                     'number'        => $mobileNo,
@@ -427,8 +435,8 @@ class RechargeController extends Controller
                 $client = new Client();
                 $response = $client->request(
                     'POST',
-                    $this->rechargeUrl,
-                    ['headers' => 
+                    $this->RECHARGE_URL,
+                    ['headers' =>
                         [
                             'Accept' => "application/json",
                             'Authorization' => "Bearer {$token}"
@@ -439,7 +447,7 @@ class RechargeController extends Controller
                             'provider_id' => $request->provider_id,
                             'client_id' => $client_id,
                         ]
-                        
+
                     ]
                 );
 
@@ -571,7 +579,7 @@ class RechargeController extends Controller
 
     public function GetNonRedeemableWallet(Request $request){
         try{
-            $sql = "SELECT m.unique_id, 
+            $sql = "SELECT m.unique_id,
                             q.mobile_no AS member_name,r.tran_type,
                             DATE_FORMAT(r.created_at,'%d/%m/%Y') AS TranDate,
                             ifnull(r.recharge_points_added,0) as recharge_points_added,ifnull(r.recharge_points_consumed,0) as recharge_points_consumed,
@@ -586,7 +594,7 @@ class RechargeController extends Controller
              $response['message'] = 'Success';
              $response["data"]=$records;
              return response($response,200);
-         
+
         } catch(Exception $e){
             $response = ['status' => false, 'message' => $e->getMessage()];
             return response($response, 200);
@@ -665,7 +673,7 @@ class RechargeController extends Controller
                 $tblMemberWalletRef->non_redeemable +=  $request->amount;
                 $tblMemberWalletRef->save();
 
-                                
+
             }
             if(trim($request->wallet_type) == 'REDEEMABLE'){
                 //Check if sufficient balance
