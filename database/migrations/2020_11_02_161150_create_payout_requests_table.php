@@ -24,9 +24,9 @@ class CreatePayoutRequestsTable extends Migration
             $table->string('bank_name')->nullable();
             $table->string('ifsc_code')->nullable();
             $table->string('account_number')->nullable();
-            $table->string('razor_contact_id')->unique()->index();
-            $table->string('razor_fund_id')->unique()->index();
-            $table->string('payout_id')->unique()->index();
+            $table->string('razor_contact_id')->nullable();
+            $table->string('razor_fund_id')->nullable();
+            $table->string('payout_id')->nullable();
             $table->timestamps();
         });
     }

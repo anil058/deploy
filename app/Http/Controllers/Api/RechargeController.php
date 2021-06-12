@@ -654,8 +654,8 @@ class RechargeController extends Controller
 
                 //Add to recepient
                 $tblRechargePointRegister = new RechargePointRegister();
-                $tblRechargePointRegister->member_id = $id;
-                $tblRechargePointRegister->ref_member_id = $refId;
+                $tblRechargePointRegister->member_id = $refId;
+                $tblRechargePointRegister->ref_member_id = $id;
                 $tblRechargePointRegister->tran_date = Carbon::now();
                 $tblRechargePointRegister->recharge_points_added = $request->amount;
                 $tblRechargePointRegister->balance_points = $tblMemberWalletRef->non_redeemable + $request->amount;
@@ -664,12 +664,12 @@ class RechargeController extends Controller
                 $tblRechargePointRegister->save();
 
                 //Deduct from host Wallet
-                $tblMemberWallet->transfer_out_amount +=  $request->amount;
+                $tblMemberWallet->transferout_amount +=  $request->amount;
                 $tblMemberWallet->non_redeemable -=  $request->amount;
                 $tblMemberWallet->save();
 
                 //Add to Recepient wallet
-                $tblMemberWalletRef->transfer_in_amount +=  $request->amount;
+                $tblMemberWalletRef->transferin_amount +=  $request->amount;
                 $tblMemberWalletRef->non_redeemable +=  $request->amount;
                 $tblMemberWalletRef->save();
 
@@ -704,6 +704,8 @@ class RechargeController extends Controller
                 $tblRechargePointRegister->tran_type = "TRANSFER-IN" ;//RECHARGE,CASHBACK
                 $tblRechargePointRegister->remarks = "TRANSFER IN FROM REDEEMABLE";
                 $tblRechargePointRegister->save();
+
+
 
                 //Deduct from host Wallet
                 $tblMemberWallet->transferout_amount +=  $request->amount;
