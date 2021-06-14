@@ -224,6 +224,7 @@ class MemberAPIController extends Controller
 
        $request->payment_int_id = $tblPaymentGateway->id;
 
+       $pmtFlag = true;
        switch($request->status){
            case 'SUCCESS':
                $tblPaymentGateway->payment_id = $request->payment_id;
@@ -243,6 +244,8 @@ class MemberAPIController extends Controller
                $tblPaymentGateway->fake = false;
                $tblPaymentGateway->closed =true;
                $tblPaymentGateway->save();
+               $pmtFlag = false;
+               break;
            default:
                // $tblPaymentGateway->payment_id = $request->payment_id;
                $tblPaymentGateway->paid = false;
@@ -251,6 +254,12 @@ class MemberAPIController extends Controller
                $tblPaymentGateway->fake = false;
                $tblPaymentGateway->closed =false;
                $tblPaymentGateway->save();
+               $pmtFlag = false;
+               break;
+       }
+
+       if($pmtFlag == false){
+        return response()->json(['status' => false, 'message' => 'Unsuccessful Payment']);
        }
 
        DB::beginTransaction();
@@ -264,6 +273,8 @@ class MemberAPIController extends Controller
            $request->parent_id = $tblTempMember->parent_id;
 
            $this->populateParams();
+           $this->populateLevelMaster();
+           $this->populateClubMaster();
            $this->createMemberUser($request);
            $this->addMember($request);
            $this->populateParents($request->parent_id);
@@ -280,9 +291,6 @@ class MemberAPIController extends Controller
            $tblMemberDeposits->deposit_type = 'MEMBERSHIP_FEE';
            $tblMemberDeposits->save();
 
-           $this->populateLevelMaster();
-           $this->populateClubMaster();
-           //$this->populateLevelWiseMemberCount($request->member_id);
 
            $this->updateMemberWallet($request->member_id);
            $this->updateLevelIncomes($request);
@@ -696,34 +704,25 @@ class MemberAPIController extends Controller
     private function updateLevelIncomes(Request $request){
         $l_commission = 0;
         $l_totalCommission = 0;
-
-        //Level Income Calculation
-        //======================================
-        //Update Member Income if there is a candidate
         $tblMemberMap = MemberMap::where('member_id',$request->member_id)->get();
 
-        $tblMember = Member::where('member_id',$request->parent_id)->first();
-
-        $l_Leadership1_beneficiary = $tblMember->parent_id;
-        $l_Leadership2_beneficiary = $tblMember->grand_parent_id;
-
         foreach ( $tblMemberMap as $memberMap){
-            $level_ctr = $memberMap->level_ctr; // + 1;
-            //Calculate Level Commission
+            $level_ctr = $memberMap->level_ctr;
             if($level_ctr < 13){
-
-                $memberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
-                $memberWallet->total_members += 1;
-                $memberWallet->save();
+                $tblMember = Member::where('member_id' , $memberMap->parent_id)->first();
+                $l_Leadership1_beneficiary = $tblMember->parent_id;
+                $l_Leadership2_beneficiary = $tblMember->grand_parent_id;
 
                 $l_levelPercent = $this->getCommissionPercent($level_ctr);
-                $l_commission = $request->member_fee * $l_levelPercent * 0.01;
-                $l_tmpCommission1 = $l_commission * $this->LEVEL1_LEADERSHIP_INCOME * 0.01;
-                $l_tmpCommission2 = $l_commission * $this->LEVEL2_LEADERSHIP_INCOME * 0.01;
-                $l_totalCommission += $l_commission;
-                $l_totalCommission += $l_tmpCommission1;
-                $l_totalCommission += $l_tmpCommission2;
+                $l_commission = round($request->member_fee * $l_levelPercent * 0.01, 2);
+                $l_Leadership1_income = round($l_commission * $this->LEVEL1_LEADERSHIP_INCOME * 0.01, 2);
+                $l_Leadership2_income = round($l_commission * $this->LEVEL2_LEADERSHIP_INCOME * 0.01,2);
 
+                $l_totalCommission += $l_commission;
+                $l_totalCommission += $l_Leadership1_income ;
+                $l_totalCommission += $l_Leadership2_income;
+
+                //Update Parent Commission
                 $tblMemberIncome = new MemberIncome();
                 $tblMemberIncome->member_id = $memberMap->parent_id;
                 $tblMemberIncome->income_type = 'Level Income';
@@ -735,72 +734,50 @@ class MemberAPIController extends Controller
                 $tblMemberIncome->balance += $l_commission;
                 $tblMemberIncome->save();
 
+                //Update Parent Wallet
                 $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
+                $tbl_MemberWallet->total_members += 1;
                 $tbl_MemberWallet->redeemable_amt += $l_commission;
                 $tbl_MemberWallet->level_income +=  $l_commission;
                 $tbl_MemberWallet->save();
 
-                $tblCurrentParent = Member::where('member_id',$memberMap->parent_id)->first();
+                //Update Leadership Income1
+                $tblMemberIncome = new MemberIncome();
+                $tblMemberIncome->member_id = $l_Leadership1_beneficiary;
+                $tblMemberIncome->income_type = 'Leadership Income1';
+                $tblMemberIncome->ref_member_id = $request->member_id;
+                $tblMemberIncome->direct_l1_percent = $this->LEVEL1_LEADERSHIP_INCOME;
+                $tblMemberIncome->commission =  $l_Leadership1_income;
+                $tblMemberIncome->ref_amount = $l_commission;
+                $tblMemberIncome->deduction = 0;
+                $tblMemberIncome->balance += $l_Leadership1_income;
+                $tblMemberIncome->save();
 
-                if($l_Leadership1_beneficiary == $memberMap->parent_id){
-                    $tblMemberIncome = new MemberIncome();
-                    $tblMemberIncome->member_id =$l_Leadership1_beneficiary;
-                    $tblMemberIncome->income_type = 'Leadership Income1';
-                    $tblMemberIncome->ref_member_id = $request->member_id;
-                    $tblMemberIncome->direct_l1_percent = $this->LEVEL1_LEADERSHIP_INCOME;
-                    $tblMemberIncome->commission =  $l_tmpCommission1;
-                    $tblMemberIncome->ref_amount = $l_commission;
-                    $tblMemberIncome->deduction = 0;
-                    $tblMemberIncome->balance += $l_tmpCommission1;
-                    $tblMemberIncome->save();
+                $tbl_MemberWallet = MemberWallet::where('member_id', $l_Leadership1_beneficiary)->first();
+                $tbl_MemberWallet->redeemable_amt += $l_Leadership1_income;
+                $tbl_MemberWallet->leadership_income +=  $l_Leadership1_income;
+                $tbl_MemberWallet->save();
 
-                    $tbl_MemberWallet = MemberWallet::where('member_id',$l_Leadership1_beneficiary)->first();
-                    $tbl_MemberWallet->redeemable_amt += $l_tmpCommission1;
-                    $tbl_MemberWallet->leadership_income +=  $l_tmpCommission1;
-                    $tbl_MemberWallet->save();
-                }
 
-                if($l_Leadership2_beneficiary == $memberMap->parent_id){
-                    $tblMemberIncome = new MemberIncome();
-                    $tblMemberIncome->member_id = $l_Leadership2_beneficiary;
-                    $tblMemberIncome->income_type = 'Leadership Income2';
-                    $tblMemberIncome->ref_member_id = $request->member_id;
-                    $tblMemberIncome->direct_l2_percent = $this->LEVEL2_LEADERSHIP_INCOME;
-                    $tblMemberIncome->commission =  $l_tmpCommission2;
-                    $tblMemberIncome->ref_amount = $l_commission;
-                    $tblMemberIncome->deduction = 0;
-                    $tblMemberIncome->balance += $l_tmpCommission2;
-                    $tblMemberIncome->save();
+                //Update Leadership Income2
+                $tblMemberIncome = new MemberIncome();
+                $tblMemberIncome->member_id = $l_Leadership2_beneficiary;
+                $tblMemberIncome->income_type = 'Leadership Income2';
+                $tblMemberIncome->ref_member_id = $request->member_id;
+                $tblMemberIncome->direct_l1_percent = $this->LEVEL2_LEADERSHIP_INCOME;
+                $tblMemberIncome->commission =  $l_Leadership2_income;
+                $tblMemberIncome->ref_amount = $l_commission;
+                $tblMemberIncome->deduction = 0;
+                $tblMemberIncome->balance += $l_Leadership2_income;
+                $tblMemberIncome->save();
 
-                    $tbl_MemberWallet = MemberWallet::where('member_id', $l_Leadership2_beneficiary)->first();
-                    $tbl_MemberWallet->redeemable_amt += $l_tmpCommission2;
-                    $tbl_MemberWallet->leadership_income +=  $l_tmpCommission2;
-                    $tbl_MemberWallet->save();
-                }
-
-                // if($tblCurrentParent->parent_id>0){
-                //     $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
-                //     $tbl_MemberWallet->redeemable_amt +=$l_commission;
-                //     // $tbl_MemberWallet->leadership_income +=  $l_tmpCommission1 + $l_tmpCommission2;
-                //     $tbl_MemberWallet->level_income +=  $l_commission;
-                //     $tbl_MemberWallet->save();
-                // }
+                $tbl_MemberWallet = MemberWallet::where('member_id', $l_Leadership2_beneficiary)->first();
+                $tbl_MemberWallet->redeemable_amt += $l_Leadership2_income;
+                $tbl_MemberWallet->leadership_income +=  $l_Leadership2_income;
+                $tbl_MemberWallet->save();
             }
         };
 
-        //Rest amount to be credited to Manshaa
-        $l_leftovers = $request->member_fee - $l_totalCommission;
-        $tblMemberIncome = new MemberIncome();
-        $tblMemberIncome->member_id = 0;
-        $tblMemberIncome->income_type = 'Company Income';
-        $tblMemberIncome->ref_member_id = $request->member_id;
-        // $tblMemberIncome->level_percent = (100 - $l_totalPercent);
-        $tblMemberIncome->commission = $l_leftovers;
-        $tblMemberIncome->ref_amount = $request->member_fee;
-        $tblMemberIncome->deduction = 0;
-        $tblMemberIncome->balance += $l_leftovers;
-
-        $tblMemberIncome->save();
     }
 
     /**
@@ -815,7 +792,7 @@ class MemberAPIController extends Controller
             $clubAchieversArray = array();
 
             //populate current parents club achiever records for want of un achieved clubs
-            $tblClubAchievers = ClubAchiever::where('member_id', $parent->member_id)->get();
+            $tblClubAchievers = ClubAchiever::where('member_id', $parent->parent_id)->get();
             foreach ($tblClubAchievers as $rec){
                 $clubAchieversArray[] = $rec;
             }
@@ -824,7 +801,7 @@ class MemberAPIController extends Controller
             $strSQL = 'SELECT m.member_id,m.designation_id
                 FROM member_maps p
                 INNER JOIN members m ON p.member_id=m.member_id
-                WHERE p.parent_id=' . $parent->member_id;
+                WHERE p.parent_id=' . $parent->parent_id;
             $tblDownline = DB::select($strSQL);
             foreach ($tblDownline as $rec){
                 $downlineArray[] = $rec;
@@ -832,7 +809,7 @@ class MemberAPIController extends Controller
             //Fill level wise count of childs
             $strSQL = 'SELECT level_ctr, COUNT(level_ctr) AS level_count
                 FROM member_maps p
-                WHERE p.parent_id=' . $parent->member_id . '  GROUP BY level_ctr';
+                WHERE p.parent_id=' . $parent->parent_id . '  GROUP BY level_ctr';
             $tblTemp = DB::select($strSQL);
             foreach ($tblTemp as $rec){
                 $childLevelCountArray[] = $rec;
@@ -864,12 +841,12 @@ class MemberAPIController extends Controller
                         $level0Members = $this->getDownlineLevelCount($childLevelCountArray, 0);
                         if($level0Members >= $club->level_req_members){
                             $tblClubAchiever = new ClubAchiever();
-                            $tblClubAchiever->member_id = $parent->member_id;
+                            $tblClubAchiever->member_id = $parent->parent_id;
                             $tblClubAchiever->designation_id = 2;
                             $tblClubAchiever->tran_date = Carbon::now();
                             $tblClubAchiever->save();
 
-                            $tblMember = Member::where('member_id', $parent->member_id)->first();
+                            $tblMember = Member::where('member_id', $parent->parent_id)->first();
                             $tblMember->designation_id = 2;
                             $tblMember->save();
                         }
@@ -904,12 +881,12 @@ class MemberAPIController extends Controller
                         if($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
-                            $tblClubAchiever->member_id = $parent->member_id;
+                            $tblClubAchiever->member_id = $parent->parent_id;
                             $tblClubAchiever->designation_id = 3;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
 
-                            $tblMember = Member::where('member_id', $parent->member_id)->first();
+                            $tblMember = Member::where('member_id', $parent->parent_id)->first();
                             $tblMember->designation_id = 3;
                             $tblMember->save();
                         }
@@ -944,12 +921,12 @@ class MemberAPIController extends Controller
                         if($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
-                            $tblClubAchiever->member_id = $parent->member_id;
+                            $tblClubAchiever->member_id = $parent->parent_id;
                             $tblClubAchiever->designation_id = 4;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
 
-                            $tblMember = Member::where('member_id', $parent->member_id)->first();
+                            $tblMember = Member::where('member_id', $parent->parent_id)->first();
                             $tblMember->designation_id = 4;
                             $tblMember->save();
                         }
@@ -984,12 +961,12 @@ class MemberAPIController extends Controller
                         if($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
-                            $tblClubAchiever->member_id = $parent->member_id;
+                            $tblClubAchiever->member_id = $parent->parent_id;
                             $tblClubAchiever->designation_id = 5;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
 
-                            $tblMember = Member::where('member_id', $parent->member_id)->first();
+                            $tblMember = Member::where('member_id', $parent->parent_id)->first();
                             $tblMember->designation_id = 5;
                             $tblMember->save();
                         }
@@ -1023,12 +1000,12 @@ class MemberAPIController extends Controller
                         if ($flag == true){
                             //if every criteria matches
                             $tblClubAchiever = new ClubAchiever();
-                            $tblClubAchiever->member_id = $parent->member_id;
+                            $tblClubAchiever->member_id = $parent->parent_id;
                             $tblClubAchiever->designation_id = 6;
                             $tblClubAchiever->tram_date = Carbon::now();
                             $tblClubAchiever->save();
 
-                            $tblMember = Member::where('member_id', $parent->member_id)->first();
+                            $tblMember = Member::where('member_id', $parent->parent_id)->first();
                             $tblMember->designation_id = 6;
                             $tblMember->save();
                         }
@@ -1112,9 +1089,9 @@ class MemberAPIController extends Controller
         $this->addRechargePointRecord($request->member_id, $request->member_id, $request->payment_int_id);
 
 
-        foreach ( $tblMemberMap as $memberMap){
-            $this->addRechargePointRecord($memberMap->member_id, $request->member_id, $request->payment_int_id);
-        };
+        // foreach ( $tblMemberMap as $memberMap){
+        //     $this->addRechargePointRecord($memberMap->member_id, $request->member_id, $request->payment_int_id);
+        // };
     }
 
     private function addRechargePointRecord($member_id, $ref_member_id,$payment_id){

@@ -66,7 +66,7 @@ class RechargeController extends Controller
         DB::enableQueryLog();
         $tblMembers = MemberMap::join('members', 'member_maps.member_id', '=', 'members.member_id')
         ->where('member_maps.member_id', $member_id)
-        ->where('member_maps.level_ctr', '<', 12)
+        ->where('member_maps.level_ctr', '<=', 12)
         // ->where('member_maps.level_ctr', '>', 0)
         ->get(['members.*','member_maps.level_ctr']);
 
@@ -499,8 +499,6 @@ class RechargeController extends Controller
                 $tblRechargePointRegister->tran_type = "RECHARGE" ;//RECHARGE,CASHBACK
                 $tblRechargePointRegister->remarks = "WALLET USED";
                 $tblRechargePointRegister->save();
-
-
             }
 
              //Redeemable CONSUMED
@@ -513,6 +511,22 @@ class RechargeController extends Controller
                 $tblMemberIncome->ref_amount = $l_AMOUNT;
                 $tblMemberIncome->balance = $l_REDEEMABLE_AMT -$l_REDEEMABLE_DEDUCTION;
                 $tblMemberIncome->save();
+            }
+
+            //if welcome point is > 0 add a negative record in RechargePointRegister
+            if($l_WELCOME_DEDUCTION > 0){
+                $tblRechargePointRegister = new RechargePointRegister();
+                $tblRechargePointRegister->member_id = $id;
+                $tblRechargePointRegister->ref_member_id =  $id;
+                $tblRechargePointRegister->tran_date = Carbon::now();
+                $tblRechargePointRegister->recharge_id = $client_id;
+
+                $tblRechargePointRegister->welcome_points_consumed = $l_WELCOME_DEDUCTION;
+                $tblRechargePointRegister->welcome_points_balance = $tblMemberWallet->welcome_amt;
+
+                $tblRechargePointRegister->tran_type = "WELCOME" ;//RECHARGE,CASHBACK
+                $tblRechargePointRegister->remarks = "WELCOME POINTS CONSUMED";
+                $tblRechargePointRegister->save();
             }
 
             //CASHBACK
@@ -540,8 +554,8 @@ class RechargeController extends Controller
             if($equalAmount > 0){
                 foreach($this->arrayParents as $parent){
                     $tblRechargePointRegister = new RechargePointRegister();
-                    $tblMemberWallet = MemberWallet::where('member_id', $parent->member_id)->first();
-                    $tblRechargePointRegister->member_id = $parent->member_id;
+                    $tblMemberWallet = MemberWallet::where('member_id', $parent->parent_id)->first();
+                    $tblRechargePointRegister->member_id = $parent->parent_id;
                     $tblRechargePointRegister->ref_member_id = $id;
                     $tblRechargePointRegister->tran_date = Carbon::now();
                     $tblRechargePointRegister->recharge_id = $client_id;

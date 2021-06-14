@@ -84,7 +84,7 @@ class CreateParamsTable extends Migration
         DB::table('params')->insert(array(
             'param' => 'MOBILE_WELCOME_ADJUSTMENT_PERCENT',
             'string_value' => '',
-            'int_value' => 2,
+            'int_value' => 1,
             'long_text' => '',
             'bool_value' => false
         ));

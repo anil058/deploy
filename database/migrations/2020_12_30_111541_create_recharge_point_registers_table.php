@@ -20,9 +20,12 @@ class CreateRechargePointRegistersTable extends Migration
             $table->dateTime('tran_date')->nullable()->index();
             $table->foreignId('payment_id')->nullable()->index();
             $table->foreignId('recharge_id')->nullable()->index();
-            $table->integer('recharge_points_added')->nullable();
-            $table->integer('recharge_points_consumed')->nullable();
-            $table->integer('balance_points')->nullable();
+            $table->integer('welcome_points_added')->nullable();
+            $table->integer('welcome_points_consumed')->nullable();
+            $table->integer('welcome_points_balance')->nullable();
+            $table->decimal('recharge_points_added')->nullable();
+            $table->decimal('recharge_points_consumed')->nullable();
+            $table->decimal('balance_points')->nullable();
             $table->string('tran_type');
             $table->string('remarks')->nullable();
             $table->timestamps();
