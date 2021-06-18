@@ -47,7 +47,7 @@ class CreateClubMasterTable extends Migration
             'silver_req' => 0,
             'gold_req' => 0,
             'diamond_req' => 0,
-            'level_req_id' => 0,
+            'level_req_id' => 1,
             'level_req_members' => 5,
             'club_percent' => 5,
             'is_stto' => 0

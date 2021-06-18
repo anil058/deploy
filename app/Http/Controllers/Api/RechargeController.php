@@ -23,7 +23,7 @@ use Carbon\Carbon;
 
 class RechargeController extends Controller
 {
-    private $DEBUG = false;
+    private $DEBUG = true;
     private $RECHARGE_CASHBACK_PERCENT;
     private $ALLOW_MOBILE_RECAHRGE;
     private $MOBILE_WELCOME_ADJUSTMENT_PERCENT;

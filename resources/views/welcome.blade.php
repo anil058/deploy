@@ -3,9 +3,9 @@
 
 <head>
     <title>💥 Mansha Real Rupees</title>
-    <link rel="stylesheet" href="{{ asset('css/bootstrap.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/bootstrap-select.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/font-awesome.css') }}">
+    <link rel="stylesheet" href="{{ asset('css1/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ asset('css1/bootstrap-select.css') }}">
+    <link rel="stylesheet" href="{{ asset('css1/font-awesome.css') }}">
 
     {{-- <link href="css/bootstrap.css" rel="stylesheet" type="text/css" media="all" /><!-- bootstrap-CSS -->
     <link rel="stylesheet" href="css/bootstrap-select.css"><!-- bootstrap-select-CSS -->
@@ -13,10 +13,10 @@
 
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script type='text/javascript' src='js/jquery-2.2.3.min.js'></script>
+    <script type='text/javascript' src='{{ asset('js1/jquery-2.2.3.min.js') }}'></script>
     <!-- Custom Theme files -->
     <!--theme-style-->
-    <link href="css/style.css" rel="stylesheet" type="text/css" media="all" />
+    <link href="css1/style.css" rel="stylesheet" type="text/css" media="all" />
     <!--//theme-style-->
     <!--meta data-->
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -867,7 +867,7 @@
             	containerID: 'toTop', // fading element id
             	containerHoverID: 'toTopHover', // fading element hover id
             	scrollSpeed: 1200,
-            	easingType: 'linear' 
+            	easingType: 'linear'
             	};
             */
 

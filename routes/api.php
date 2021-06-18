@@ -59,6 +59,8 @@ Route::group(['middleware' => ['cors', 'json.response', 'api.key']], function ()
     // ...
 });
 
+Route::get('/testapi', [MemberAPIController::class,'showUser']);
+
 Route::get('/userimage', [UserImageController::class,'userImage']);
 Route::post('/getmemberdocuments', [UserImageController::class,'getMemberDocuments']);
 

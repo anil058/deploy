@@ -31,6 +31,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use App\Helpers\DBFunctions;
 
 /**
  * KNOWLEDGE
@@ -49,10 +50,7 @@ use Illuminate\Support\Facades\Auth;
 
 class MemberAPIController extends Controller
 {
-    //fetch ref table
-    //private $arrayRefTable;
-    // private $arrayRefTable = array();
-
+    private $dbf;
     //Paremters
     private $MEMBERSHIP_POINTS;
     private $TAX_PERCENT;
@@ -71,13 +69,15 @@ class MemberAPIController extends Controller
     //Constructor
     public function __construct()
     {
-        $this->middleware('auth:api')->except(['createTempUser','updatePaymentStatus','getRefererName','getRecipientName']);
+        $this->dbf = new DBFunctions();
+        $this->middleware('auth:api')->except(['showUser','createTempUser','updatePaymentStatus','getRefererName','getRecipientName']);
     }
 
-     /**
-     * Update Member profile information
-     * ===================================================================> Route Method
-     */
+    public function showUser(Request $request){
+        return "ANIL MISHRA"; //auth()->user();
+    }
+
+    //Requests API ===============================================================
     public function updateMemberInfo(Request $request) {
         try{
             //Validate request
@@ -130,10 +130,6 @@ class MemberAPIController extends Controller
         }
     }
 
-    /**
-     * Fetch member info to show in the profile screen
-     * ===================================================================> Route Method
-     */
     public function getMemberInfo(Request $request) {
         try {
             $id = $request->user()->id;
@@ -179,10 +175,23 @@ class MemberAPIController extends Controller
         }
     }
 
-    /**
-     * Update payment and create members
-     * ===================================================================> Route Method
+    /** ======================= UPDATE PAYMENT AND CREATE MEMBER ======================
+     *
+     *populateParams();
+     *populateLevelMaster();
+     *populateClubMaster();
+     *createMemberUser($request);
+     *addMember($request);
+     *populateParents($request->parent_id);
+     *mapMember($request);
+     *addMemberWallet($request->member_id);
+     *updateLevelIncomes($request);
+     *updateCurrentLevel($request);
+     *updateClub($request->member_id);
+     *updateRewards($request);
+     *addRechargePoints($request);
      */
+
     public function updatePaymentStatus(Request $request){
         //Validate Input
         $validator = Validator::make($request->all(), [
@@ -291,14 +300,12 @@ class MemberAPIController extends Controller
            $tblMemberDeposits->deposit_type = 'MEMBERSHIP_FEE';
            $tblMemberDeposits->save();
 
-
-           $this->updateMemberWallet($request->member_id);
+           $this->addMemberWallet($request->member_id);
            $this->updateLevelIncomes($request);
-           // $this->updateCurrentLevel($request);
-           $this->updateClub();
+           $this->updateClub($request->member_id);
+           $this->updateClubIncome($request);
            $this->updateRewards($request);
            $this->addRechargePoints($request);
-           //$this->updateLevelAchievers();
 
            //When confirm, updated closed flag
            $tblPaymentGateway->member_id = $request->member_id;
@@ -315,10 +322,6 @@ class MemberAPIController extends Controller
 
     }
 
-    /**
-     * Get Name of the Member whose reference is being used as referer
-     * ===================================================================> Route Method
-     */
     public function getRefererName(Request $request){
         try{
             $validator = Validator::make($request->all(), [
@@ -369,80 +372,6 @@ class MemberAPIController extends Controller
 
     }
 
-
-    //############################################################################
-    //############################################################################
-    //############################################################################
-    //############################################################################
-    //############################################################################
-    //############################################################################
-    //############################################################################
-    //############################################################################
-    //############################################################################
-
-
-    /**
-     * Extract and Fill arrayParents for current member
-     * ------------------------------------------------------------------> Masters/ References
-     */
-    private function populateClubMaster(){
-        $tblTemp = ClubMaster::all();
-        foreach ($tblTemp as $rec){
-            $this->arrayClubMaster[] = $rec;
-        }
-    }
-
-    /**
-     * Extract and Fill Parameters from params
-     * ------------------------------------------------------------------> Masters/ References
-     */
-    //
-    private function populateParams(){
-        $tblParamTable = Param::all();
-        foreach ($tblParamTable as $refTable){
-            switch($refTable->param){
-                case "MEMBERSHIP_FEE":
-                    $this->MEMBERSHIP_FEE = $refTable->int_value;
-                    break;
-                case "TAX_PERCENT":
-                    $this->TAX_PERCENT = $refTable->string_value;
-                    break;
-                case "CASHBACK_REWARD":
-                    $this->MEMBERSHIP_POINTS = $refTable->int_value;
-                    break;
-                case "LEVEL1_LEADERSHIP_INCOME":
-                    $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
-                    break;
-                case "LEVEL2_LEADERSHIP_INCOME":
-                    $this->LEVEL2_LEADERSHIP_INCOME = $refTable->int_value;
-                    break;
-                case "ALLOW_COMPANY_REFERAL_CODE":
-                    $this->ALLOW_COMPANY_REFERAL_CODE = ($refTable->bool_value == 0) ? false : true;
-                    break;
-                case "ALLOW_NEW_MEMBERS":
-                    $this->ALLOW_NEW_MEMBERS = ($refTable->bool_value == 0) ? false : true;
-                    break;
-                default :
-                $this->ROYALTY_REQ_NUM = 0;
-            }
-        }
-    }
-
-     /**
-     * Test Method
-     * ===================================================================> Route Method
-     */
-    public function showUser(){
-        return "ANIL MISHRA"; //auth()->user();
-    }
-
-/**
-     * CREATE TEMPORARY MEMBER
-     * ===================================================================> Route Method
-     * Once Payment is Done One record each for MemberUser and Members
-     * otp, expiry_date, ip, expiry_at will be calculated
-     * ParentID will be fetched from Referral
-     */
     public function createTempUser(Request $request){
         DB::beginTransaction();
         try{
@@ -557,14 +486,55 @@ class MemberAPIController extends Controller
     }
 
 
+    // Private methods Fillers ===============================================================
+    private function populateClubMaster(){
+        $tblTemp = ClubMaster::all();
+        foreach ($tblTemp as $rec){
+            $this->arrayClubMaster[] = $rec;
+        }
+    }
 
-    /**
-     * Extract and Fill arrayParents for current member
-     * ------------------------------------------------------------------> Masters/ References
-     */
+    private function populateParams(){
+        $tblParamTable = Param::all();
+        foreach ($tblParamTable as $refTable){
+            switch($refTable->param){
+                case "MEMBERSHIP_FEE":
+                    $this->MEMBERSHIP_FEE = $refTable->int_value;
+                    break;
+                case "TAX_PERCENT":
+                    $this->TAX_PERCENT = $refTable->string_value;
+                    break;
+                case "CASHBACK_REWARD":
+                    $this->MEMBERSHIP_POINTS = $refTable->int_value;
+                    break;
+                case "LEVEL1_LEADERSHIP_INCOME":
+                    $this->LEVEL1_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
+                case "LEVEL2_LEADERSHIP_INCOME":
+                    $this->LEVEL2_LEADERSHIP_INCOME = $refTable->int_value;
+                    break;
+                case "ALLOW_COMPANY_REFERAL_CODE":
+                    $this->ALLOW_COMPANY_REFERAL_CODE = ($refTable->bool_value == 0) ? false : true;
+                    break;
+                case "ALLOW_NEW_MEMBERS":
+                    $this->ALLOW_NEW_MEMBERS = ($refTable->bool_value == 0) ? false : true;
+                    break;
+                default :
+                $this->ROYALTY_REQ_NUM = 0;
+            }
+        }
+    }
+
+    private function populateLevelMaster(){
+        $tblTemp = LevelMaster::all();
+        foreach ($tblTemp as $rec){
+            $this->arrayLevelMaster[] = $rec;
+        }
+    }
+
     private function populateParents($member_id){
         DB::enableQueryLog();
-        $tblMembers = MemberMap::join('members', 'member_maps.member_id', '=', 'members.member_id')
+        $tblMembers = MemberMap::join('members', 'member_maps.parent_id', '=', 'members.member_id')
         ->where('member_maps.member_id', $member_id)
         ->where('member_maps.level_ctr', '<', 12)
         // ->where('member_maps.level_ctr', '>', 0)
@@ -575,20 +545,9 @@ class MemberAPIController extends Controller
         }
     }
 
-    /**
-     * Extract and Fill arrayParents for current member
-     * ------------------------------------------------------------------> Masters/ References
-     */
-    private function populateLevelMaster(){
-        $tblTemp = LevelMaster::all();
-        foreach ($tblTemp as $rec){
-            $this->arrayLevelMaster[] = $rec;
-        }
-    }
 
 
-
-    //Get Level Commission Percent ***************************** called by updateLevelIncomes()
+    //Private Methods Getters =================================================================
     private function getCommissionPercent($levelCtr){
         foreach($this->arrayLevelMaster as $m){
             if ($m->level == $levelCtr)
@@ -599,7 +558,48 @@ class MemberAPIController extends Controller
         return 0;
     }
 
-    //Create new member code************************************ called by addMember()
+    private function getLevelMemberRequirementsForReward($levelCtr){
+        foreach($this->arrayLevelMaster as $m){
+            if ($m->level == $levelCtr)
+            {
+                return $m;
+            }
+        }
+        return 0;
+    }
+
+    private function getClubRequirement($arr, $designation_id){
+        foreach($arr as $m){
+            if ($m->id == $designation_id)
+            {
+                return $m;
+            }
+        }
+    }
+
+    private function getHierarchyClubCount($arr, $clubID){
+        $cnt = 0;
+        foreach($arr as $m){
+            if ($m->designation_id == $clubID)
+            {
+                $cnt++;
+            }
+        }
+        return $cnt;
+    }
+
+    private function getDownlineLevelCount($arr, $levelCtr){
+        $cnt = 0;
+        foreach($arr as $m){
+            if ($m->level_ctr == $levelCtr)
+            {
+                return $m->level_count;
+            }
+        }
+        return 0;
+    }
+
+    //Misc Private Functions
     public function newMemberCode()
     {
         // $prefix = config('app.member_prefix');
@@ -612,9 +612,6 @@ class MemberAPIController extends Controller
         return $memberCode;
     }
 
-    /**
-     * updatePaymentStatus************************************** called by addMember()
-     */
     private function createMemberUser(Request $request){
         $token=Str::random(80);
         $tblMemberUser = new MemberUser();
@@ -632,9 +629,6 @@ class MemberAPIController extends Controller
         $request->api_token = $token;
     }
 
-    /**
-     * updatePaymentStatus************************************** called by updatePaymentStatus()
-     */
     private function addMember(Request $request){
         $tblTempMember = TempMember::where('id', $request->temp_id)->first();
         if ($tblTempMember === null){
@@ -648,6 +642,7 @@ class MemberAPIController extends Controller
             $request->jumboErrorMessage = "Parent not found";
             return false;
         }
+
 
         $tblMember = new Member();
         $tblMember -> temp_id = $request->temp_id;
@@ -670,13 +665,6 @@ class MemberAPIController extends Controller
         $request -> unique_id = $tblMember -> unique_id;
     }
 
-    /**
-     * Map all the parents of the member************************ called by updatePaymentStatus()
-     * 1. Find Parent of the member in question in member_maps table with level_ctr<=10
-     * 2. Add a record in member_maps for the current member with level_ctr=1
-     * 3. Add all the records from step 1 with levelctr+=1
-     *
-     */
     private function mapMember(Request $request){
         $tblMemberMap = MemberMap::where('member_id',$request->parent_id)
                         ->get();
@@ -694,13 +682,6 @@ class MemberAPIController extends Controller
 
     }
 
-    /**
-     * Update Incomes (Level and Direct Sponser Incomes) ******** called by updatePaymentStatus()
-     * ==================================================
-     * Update Level Incomes
-     * Update Direct Sponser Income
-     * Distribute Income according to refables
-     */
     private function updateLevelIncomes(Request $request){
         $l_commission = 0;
         $l_totalCommission = 0;
@@ -723,6 +704,7 @@ class MemberAPIController extends Controller
                 $l_totalCommission += $l_Leadership2_income;
 
                 //Update Parent Commission
+                $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
                 $tblMemberIncome = new MemberIncome();
                 $tblMemberIncome->member_id = $memberMap->parent_id;
                 $tblMemberIncome->income_type = 'Level Income';
@@ -731,17 +713,17 @@ class MemberAPIController extends Controller
                 $tblMemberIncome->commission = $l_commission;
                 $tblMemberIncome->deduction = 0;
                 $tblMemberIncome->ref_amount = $request->member_fee;
-                $tblMemberIncome->balance += $l_commission;
+                $tblMemberIncome->balance = $tbl_MemberWallet->redeemable_amt + $l_commission;
                 $tblMemberIncome->save();
 
                 //Update Parent Wallet
-                $tbl_MemberWallet = MemberWallet::where('member_id',$memberMap->parent_id)->first();
                 $tbl_MemberWallet->total_members += 1;
                 $tbl_MemberWallet->redeemable_amt += $l_commission;
                 $tbl_MemberWallet->level_income +=  $l_commission;
                 $tbl_MemberWallet->save();
 
                 //Update Leadership Income1
+                $tbl_MemberWallet = MemberWallet::where('member_id', $l_Leadership1_beneficiary)->first();
                 $tblMemberIncome = new MemberIncome();
                 $tblMemberIncome->member_id = $l_Leadership1_beneficiary;
                 $tblMemberIncome->income_type = 'Leadership Income1';
@@ -750,28 +732,29 @@ class MemberAPIController extends Controller
                 $tblMemberIncome->commission =  $l_Leadership1_income;
                 $tblMemberIncome->ref_amount = $l_commission;
                 $tblMemberIncome->deduction = 0;
-                $tblMemberIncome->balance += $l_Leadership1_income;
+                $tblMemberIncome->balance =  $tbl_MemberWallet->redeemable_amt + $l_Leadership1_income;
                 $tblMemberIncome->save();
 
-                $tbl_MemberWallet = MemberWallet::where('member_id', $l_Leadership1_beneficiary)->first();
                 $tbl_MemberWallet->redeemable_amt += $l_Leadership1_income;
                 $tbl_MemberWallet->leadership_income +=  $l_Leadership1_income;
                 $tbl_MemberWallet->save();
 
 
+
                 //Update Leadership Income2
+                $tbl_MemberWallet = MemberWallet::where('member_id', $l_Leadership2_beneficiary)->first();
                 $tblMemberIncome = new MemberIncome();
                 $tblMemberIncome->member_id = $l_Leadership2_beneficiary;
                 $tblMemberIncome->income_type = 'Leadership Income2';
                 $tblMemberIncome->ref_member_id = $request->member_id;
-                $tblMemberIncome->direct_l1_percent = $this->LEVEL2_LEADERSHIP_INCOME;
+                $tblMemberIncome->direct_l2_percent = $this->LEVEL2_LEADERSHIP_INCOME;
                 $tblMemberIncome->commission =  $l_Leadership2_income;
                 $tblMemberIncome->ref_amount = $l_commission;
                 $tblMemberIncome->deduction = 0;
-                $tblMemberIncome->balance += $l_Leadership2_income;
+                $tblMemberIncome->balance = $tbl_MemberWallet->redeemable_amt + $l_Leadership2_income;
                 $tblMemberIncome->save();
 
-                $tbl_MemberWallet = MemberWallet::where('member_id', $l_Leadership2_beneficiary)->first();
+
                 $tbl_MemberWallet->redeemable_amt += $l_Leadership2_income;
                 $tbl_MemberWallet->leadership_income +=  $l_Leadership2_income;
                 $tbl_MemberWallet->save();
@@ -780,10 +763,517 @@ class MemberAPIController extends Controller
 
     }
 
-    /**
-     ************************************************************* called by updatePaymentStatus()
-     */
-    private function updateClub(){
+    private function updateClub($member_id){
+        $l_bronzCount = 0;
+        $l_silverCount = 0;
+        $l_goldCount = 0;
+        $l_diamondCount = 0;
+        $l_royaltyCount = 0;
+
+        $l_level0Count = 0;
+        $l_level1Count = 0;
+        $l_level2Count = 0;
+        $l_level3Count = 0;
+        $l_level4Count = 0;
+        $l_level5Count = 0;
+        $l_level6Count = 0;
+        $l_level7Count = 0;
+        $l_level8Count = 0;
+        $l_level9Count = 0;
+        $l_level10Count = 0;
+        $l_level11Count = 0;
+        $l_level12Count = 0;
+
+        $l_bronzAchieved = false;
+        $l_silverAchieved = false;
+        $l_goldAchieved = false;
+        $l_diamondAchieved = false;
+        $l_royaltyAchieved = false;
+
+        $l_parents = $this->dbf->dbFuncGetParents($member_id);
+
+        //Fill Achievers and Level wise member count
+        foreach($l_parents as $lp){
+            $ll_memberID = $lp->member_id;
+            $ll_designationChildren = $this->dbf->dbFuncDesignationWiseChildrenCount($ll_memberID);
+            $ll_levelChildren = $this->dbf->dbFuncLevelWiseChildrenCount($ll_memberID);
+            $ll_clubsAchieved = $this->dbf->dbFuncGetAllAchievementsOfAMember($ll_memberID);
+
+            //Fill Designation wise member count
+            foreach($ll_designationChildren as $dc){
+                if($dc->designation_id == 2){
+                    $l_bronzCount = $dc->total_members;
+                }
+                if($dc->designation_id == 3){
+                    $l_silverCount = $dc->total_members;
+                }
+                if($dc->designation_id == 4){
+                    $l_goldCount = $dc->total_members;
+                }
+                if($dc->designation_id == 5){
+                    $l_diamondCount = $dc->total_members;
+                }
+                if($dc->designation_id == 6){
+                    $l_royaltyCount = $dc->total_members;
+                }
+            }
+
+            //Fill Level wise member count
+            foreach($ll_levelChildren as $lc){
+                if($lc->level_ctr == 0){
+                    $l_level0Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 1){
+                    $l_level1Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 2){
+                    $l_level2Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 3){
+                    $l_level3Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 4){
+                    $l_level4Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 5){
+                    $l_level5Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 6){
+                    $l_level6Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 7){
+                    $l_level7Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 8){
+                    $l_level8Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 9){
+                    $l_level9Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 10){
+                    $l_level10Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 11){
+                    $l_level11Count = $lc->total_members;
+                }
+                if($lc->level_ctr == 12){
+                    $l_level12Count = $lc->total_members;
+                }
+
+            }
+
+            //Fill Clubs already have
+            foreach($ll_clubsAchieved as $ca){
+                if($ca->designation_id == 2){
+                    $l_bronzAchieved=true;
+                }
+                if($ca->designation_id == 3){
+                    $l_silverAchieved=true;
+                }
+                if($ca->designation_id == 4){
+                    $l_goldAchieved=true;
+                }
+                if($ca->designation_id == 5){
+                    $l_diamondAchieved=true;
+                }
+                if($ca->designation_id == 6){
+                    $l_royaltyAchieved=true;
+                }
+            }
+
+            //Update Bronz Club
+            if($l_bronzAchieved == false){
+                $ll_clb = $this->getClubRequirement($this->arrayClubMaster, 2);
+
+                $ll_bronzRequired = $ll_clb->bronz_req;
+                $ll_silverRequired = $ll_clb->silver_req;
+                $ll_goldRequired = $ll_clb->gold_req;
+                $ll_diamondRequired = $ll_clb->diamond_req;
+                $ll_required_id =  $ll_clb->level_req_id;
+                $ll_level_req_members = $ll_clb->level_req_members;
+
+                $flag = true;
+                if(($ll_bronzRequired > 0) && ($l_bronzCount < $ll_bronzRequired))
+                    $flag = false;
+                if (($ll_silverRequired > 0) && ($l_silverCount < $ll_silverRequired))
+                    $flag = false;
+                if (($ll_goldRequired > 0) && ($l_goldCount < $ll_goldRequired))
+                    $flag = false;
+                if (($ll_diamondRequired > 0) && ($l_diamondCount < $ll_diamondRequired))
+                    $flag = false;
+
+
+                if($ll_required_id > 0){
+                    if($ll_required_id == 1){
+                        if($l_level1Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 2){
+                        if($l_level2Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 4){
+                        if($l_level4Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 5){
+                        if($l_level5Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                }
+
+                if($flag == true){
+                    $tblClubAchiever = new ClubAchiever();
+                    $tblClubAchiever->member_id = $ll_memberID;
+                    $tblClubAchiever->designation_id = 2;
+                    $tblClubAchiever->tran_date = Carbon::now();
+                    $tblClubAchiever->save();
+
+                    $tblMember = Member::where('member_id', $ll_memberID)->first();
+                    $tblMember->designation_id = 2;
+                    $tblMember->save();
+                }
+            }
+
+
+            //Update Silver Club
+            if($l_silverAchieved == false){
+                $ll_clb = $this->getClubRequirement($this->arrayClubMaster, 3);
+
+                $ll_bronzRequired = $ll_clb->bronz_req;
+                $ll_silverRequired = $ll_clb->silver_req;
+                $ll_goldRequired = $ll_clb->gold_req;
+                $ll_diamondRequired = $ll_clb->diamond_req;
+                $ll_royaltyRequired = $ll_clb->royalty_req;
+                $ll_required_id =  $ll_clb->level_req_id;
+                $ll_level_req_members = $ll_clb->level_req_members;
+
+                $flag = true;
+                if(($ll_bronzRequired > 0) && ($l_bronzCount < $ll_bronzRequired))
+                    $flag = false;
+                if (($ll_silverRequired > 0) && ($l_silverCount < $ll_silverRequired))
+                    $flag = false;
+                if (($ll_goldRequired > 0) && ($l_goldCount < $ll_goldRequired))
+                    $flag = false;
+                if (($ll_diamondRequired > 0) && ($l_diamondCount < $ll_diamondRequired))
+                    $flag = false;
+
+
+                if($ll_required_id > 0){
+                    if($ll_required_id == 2){
+                        if($l_level2Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 4){
+                        if($l_level4Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 5){
+                        if($l_level5Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                }
+
+                if($flag == true){
+                    $tblClubAchiever = new ClubAchiever();
+                    $tblClubAchiever->member_id = $ll_memberID;
+                    $tblClubAchiever->designation_id = 3;
+                    $tblClubAchiever->tram_date = Carbon::now();
+                    $tblClubAchiever->save();
+
+                    $tblMember = Member::where('member_id', $ll_memberID)->first();
+                    $tblMember->designation_id = 3;
+                    $tblMember->save();
+                }
+
+            }
+
+
+            //Update Gold Club
+            if($l_silverAchieved == false){
+                $ll_clb = $this->getClubRequirement($this->arrayClubMaster, 4);
+
+                $ll_bronzRequired = $ll_clb->bronz_req;
+                $ll_silverRequired = $ll_clb->silver_req;
+                $ll_goldRequired = $ll_clb->gold_req;
+                $ll_diamondRequired = $ll_clb->diamond_req;
+                $ll_royaltyRequired = $ll_clb->royalty_req;
+                $ll_required_id =  $ll_clb->level_req_id;
+                $ll_level_req_members = $ll_clb->level_req_members;
+
+                $flag = true;
+                if(($ll_bronzRequired > 0) && ($l_bronzCount < $ll_bronzRequired))
+                    $flag = false;
+                if (($ll_silverRequired > 0) && ($l_silverCount < $ll_silverRequired))
+                    $flag = false;
+                if (($ll_goldRequired > 0) && ($l_goldCount < $ll_goldRequired))
+                    $flag = false;
+                if (($ll_diamondRequired > 0) && ($l_diamondCount < $ll_diamondRequired))
+                    $flag = false;
+
+
+                if($ll_required_id > 0){
+                    if($ll_required_id == 2){
+                        if($l_level2Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 4){
+                        if($l_level4Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 5){
+                        if($l_level5Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                }
+
+                if($flag == true){
+                    $tblClubAchiever = new ClubAchiever();
+                    $tblClubAchiever->member_id = $ll_memberID;
+                    $tblClubAchiever->designation_id = 4;
+                    $tblClubAchiever->tram_date = Carbon::now();
+                    $tblClubAchiever->save();
+
+                    $tblMember = Member::where('member_id', $ll_memberID)->first();
+                    $tblMember->designation_id = 4;
+                    $tblMember->save();
+                }
+
+            }
+
+            //Update Diamond Club
+            if($l_diamondAchieved == false){
+                $ll_clb = $this->getClubRequirement($this->arrayClubMaster, 5);
+
+                $ll_bronzRequired = $ll_clb->bronz_req;
+                $ll_silverRequired = $ll_clb->silver_req;
+                $ll_goldRequired = $ll_clb->gold_req;
+                $ll_diamondRequired = $ll_clb->diamond_req;
+                $ll_royaltyRequired = $ll_clb->royalty_req;
+                $ll_required_id =  $ll_clb->level_req_id;
+                $ll_level_req_members = $ll_clb->level_req_members;
+
+                $flag = true;
+                if(($ll_bronzRequired > 0) && ($l_bronzCount < $ll_bronzRequired))
+                    $flag = false;
+                if (($ll_silverRequired > 0) && ($l_silverCount < $ll_silverRequired))
+                    $flag = false;
+                if (($ll_goldRequired > 0) && ($l_goldCount < $ll_goldRequired))
+                    $flag = false;
+                if (($ll_diamondRequired > 0) && ($l_diamondCount < $ll_diamondRequired))
+                    $flag = false;
+
+
+                if($ll_required_id > 0){
+                    if($ll_required_id == 2){
+                        if($l_level2Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 4){
+                        if($l_level4Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 5){
+                        if($l_level5Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                }
+
+                if($flag == true){
+                    $tblClubAchiever = new ClubAchiever();
+                    $tblClubAchiever->member_id = $ll_memberID;
+                    $tblClubAchiever->designation_id = 5;
+                    $tblClubAchiever->tram_date = Carbon::now();
+                    $tblClubAchiever->save();
+
+                    $tblMember = Member::where('member_id', $ll_memberID)->first();
+                    $tblMember->designation_id = 5;
+                    $tblMember->save();
+                }
+            }
+
+            //Update Royalty Club
+            if($l_diamondAchieved == false){
+                $ll_clb = $this->getClubRequirement($this->arrayClubMaster, 6);
+
+                $ll_bronzRequired = $ll_clb->bronz_req;
+                $ll_silverRequired = $ll_clb->silver_req;
+                $ll_goldRequired = $ll_clb->gold_req;
+                $ll_diamondRequired = $ll_clb->diamond_req;
+                $ll_royaltyRequired = $ll_clb->royalty_req;
+                $ll_required_id =  $ll_clb->level_req_id;
+                $ll_level_req_members = $ll_clb->level_req_members;
+
+                $flag = true;
+                if(($ll_bronzRequired > 0) && ($l_bronzCount < $ll_bronzRequired))
+                    $flag = false;
+                if (($ll_silverRequired > 0) && ($l_silverCount < $ll_silverRequired))
+                    $flag = false;
+                if (($ll_goldRequired > 0) && ($l_goldCount < $ll_goldRequired))
+                    $flag = false;
+                if (($ll_diamondRequired > 0) && ($l_diamondCount < $ll_diamondRequired))
+                    $flag = false;
+
+
+                if($ll_required_id > 0){
+                    if($ll_required_id == 2){
+                        if($l_level2Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 3){
+                        if($l_level3Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 4){
+                        if($l_level4Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                    if($ll_required_id == 5){
+                        if($l_level5Count < $ll_level_req_members){
+                            $flag = false;
+                        }
+                    }
+                }
+
+                if($flag == true){
+                    $tblClubAchiever = new ClubAchiever();
+                    $tblClubAchiever->member_id = $ll_memberID;
+                    $tblClubAchiever->designation_id = 6;
+                    $tblClubAchiever->tram_date = Carbon::now();
+                    $tblClubAchiever->save();
+
+                    $tblMember = Member::where('member_id', $ll_memberID)->first();
+                    $tblMember->designation_id = 6;
+                    $tblMember->save();
+                }
+
+            }
+        }
+    }
+
+    private function updateClubIncome(Request $request){
+        $l_memberFee = $request->member_fee;
+        foreach($this->arrayClubMaster as $level){
+            if($level->is_stto == false){ //CTO
+                $l_clubPercent = $level->club_percent;
+                $l_clubMembers = $this->dbf->getCompanyLevelAchievers($level->id);
+                $l_count = count($l_clubMembers);
+                if($l_count > 0){
+                    $l_equalAmount = round(($l_memberFee * $l_clubPercent * 0.01) / $l_count, 2 );
+                    foreach($l_clubMembers as $mbr){
+                        $tbl1 = MemberWallet::where('member_id', $mbr->member_id)->first();
+                        $tbl1->redeemable_amt = $tbl1->redeemable_amt + $l_equalAmount;
+                        $tbl1->club_income = $tbl1->club_income + $l_equalAmount;
+                        $tbl1->save();
+
+                        $tblMemberIncome = new MemberIncome();
+                        $tblMemberIncome->member_id = $mbr->member_id;
+                        $tblMemberIncome->income_type = 'Club Income';
+                        $tblMemberIncome->ref_member_id = $request->member_id;
+                        $tblMemberIncome->club_percent = $l_clubPercent;
+                        // $tblMemberIncome->actual_percent
+                        $tblMemberIncome->cto = true;
+                        $tblMemberIncome->stto = false;
+                        $tblMemberIncome->ref_amount = $l_memberFee;
+                        $tblMemberIncome->commission = $l_equalAmount;
+                        $tblMemberIncome->balance = $tbl1->redeemable_amt;
+                        $tblMemberIncome->save();
+                    }
+                }
+
+            } else { //STTO
+                $l_clubPercent = $level->club_percent;
+                $l_clubMembers = $this->dbf->getUplinkLevelAchievers($request->member_id, $level->id);
+                $l_count = count($l_clubMembers);
+                if($l_count > 0){
+                    $l_equalAmount = round(($l_memberFee * $l_clubPercent * 0.01) / $l_count, 2) ;
+                    foreach($l_clubMembers as $mbr){
+                        $tbl1 = MemberWallet::where('member_id', $mbr->member_id)->first();
+                        $tbl1->redeemable_amt = $tbl1->redeemable_amt + $l_equalAmount;
+                        $tbl1->club_income = $tbl1->club_income + $l_equalAmount;
+                        $tbl1->save();
+
+                        $tblMemberIncome = new MemberIncome();
+                        $tblMemberIncome->member_id = $mbr->member_id;
+                        $tblMemberIncome->income_type = 'Club Income';
+                        $tblMemberIncome->ref_member_id = $request->member_id;
+                        $tblMemberIncome->club_percent = $l_clubPercent;
+                        // $tblMemberIncome->actual_percent
+                        $tblMemberIncome->cto = false;
+                        $tblMemberIncome->stto = true;
+                        $tblMemberIncome->ref_amount = $l_memberFee;
+                        $tblMemberIncome->commission = $l_equalAmount;
+                        $tblMemberIncome->balance = $tbl1->redeemable_amt;
+                        $tblMemberIncome->save();
+                    }
+                }
+            }
+        }
+    }
+
+
+    private function updateClubDiscarded(){
         //loop through all the parents of newly created member
         foreach($this->arrayParents as $parent){
             //fill DownlinesArray of the parentmember
@@ -1015,9 +1505,6 @@ class MemberAPIController extends Controller
         }
     }
 
-    /**
-     ************************************************************* called by updatePaymentStatus()
-     */
     private function updateRewards(Request $request){
         //Loop through parents
         //Count levelwise members
@@ -1025,93 +1512,241 @@ class MemberAPIController extends Controller
         //      if required_members matches levelcount then update reward table
 
         foreach($this->arrayParents as $parent){
-            $sql = 'SELECT level_ctr, COUNT(level_ctr) AS level_count
-                FROM member_maps p
-                WHERE p.parent_id=' . $parent->member_id . ' GROUP BY level_ctr';
+            $l_levelWiseChildren = $this->dbf->dbFuncLevelWiseChildrenCount($parent->member_id);
+            $l_memberRewards = $this->dbf->dbFuncMemberRewards($parent->member_id);
 
-            $tblMembers = DB::select($sql);
-            foreach($tblMembers as $member){
-                foreach($this->arrayLevelMaster as $level){
-                    if ($level->level == $member->level_ctr){
-                        if($level->required_members == $member->level_count){
-                            $tblMemberRewards = new MemberRewards();
-                            $tblMemberRewards->member_id = $parent->member_id;
-                            $tblMemberRewards->level_id = $level->level;
-                            $tblMemberRewards->member_count = $member->level_count;
-                            $tblMemberRewards->tran_date = Carbon::now();
-                            $tblMemberRewards->reward_name = $level->reward;
-                            $tblMemberRewards->qualifying_date = Carbon::now();
-                            $tblMemberRewards->save();
-                        }
-                    }
+            $l_level1ChildrenCount = 0;
+            $l_level2ChildrenCount = 0;
+            $l_level3ChildrenCount = 0;
+            $l_level4ChildrenCount = 0;
+            $l_level5ChildrenCount = 0;
+            $l_level6ChildrenCount = 0;
+            $l_level7ChildrenCount = 0;
+            $l_level8ChildrenCount = 0;
+            $l_level9ChildrenCount = 0;
+            $l_level10ChildrenCount = 0;
+            $l_level11ChildrenCount = 0;
+            $l_level12ChildrenCount = 0;
+
+            $l_level1RewardTaken = false;
+            $l_level2RewardTaken = false;
+            $l_level3RewardTaken = false;
+            $l_level4RewardTaken = false;
+            $l_level5RewardTaken = false;
+            $l_level6RewardTaken = false;
+            $l_level7RewardTaken = false;
+            $l_level8RewardTaken = false;
+            $l_level9RewardTaken = false;
+            $l_level10RewardTaken = false;
+            $l_level11RewardTaken = false;
+            $l_level12RewardTaken = false;
+
+            foreach($l_levelWiseChildren as $cnt){
+                if($cnt->level_ctr == 1){
+                    $l_level1ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 2){
+                    $l_level2ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 3){
+                    $l_level3ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 4){
+                    $l_level4ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 5){
+                    $l_level5ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 6){
+                    $l_level6ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 7){
+                    $l_level7ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 8){
+                    $l_level8ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 9){
+                    $l_level9ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 10){
+                    $l_level10ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 11){
+                    $l_level11ChildrenCount = $cnt->total_members;
+                }
+                if($cnt->level_ctr == 12){
+                    $l_level12ChildrenCount = $cnt->total_members;
+                }
+
+            }
+
+            foreach($l_memberRewards as $rewards){
+                if($rewards->level_id == 1){
+                    $l_level1RewardTaken = true;
+                }else
+                if($rewards->level_id == 2){
+                    $l_level2RewardTaken = true;
+                }
+                if($rewards->level_id == 3){
+                    $l_level3RewardTaken = true;
+                }
+                if($rewards->level_id == 4){
+                    $l_level4RewardTaken = true;
+                }
+                if($rewards->level_id == 5){
+                    $l_level5RewardTaken = true;
+                }
+                if($rewards->level_id == 6){
+                    $l_level6RewardTaken = true;
+                }
+                if($rewards->level_id == 7){
+                    $l_level7RewardTaken = true;
+                }
+                if($rewards->level_id == 8){
+                    $l_level8RewardTaken = true;
+                }
+                if($rewards->level_id == 9){
+                    $l_level9RewardTaken = true;
+                }
+                if($rewards->level_id == 10){
+                    $l_level10RewardTaken = true;
+                }
+                if($rewards->level_id == 11){
+                    $l_level11RewardTaken = true;
+                }
+                if($rewards->level_id == 12){
+                    $l_level12RewardTaken = true;
                 }
             }
 
+            if($l_level1RewardTaken == false){
+                $l_levelMemberRequirement = $this->getLevelMemberRequirementsForReward(1);
+                if($l_level1ChildrenCount > $l_levelMemberRequirement->required_members){
+                    $tblMemberRewards = new MemberRewards();
+                    $tblMemberRewards->member_id = $parent->member_id;
+                    $tblMemberRewards->level_id = 1;
+                    $tblMemberRewards->member_count = $l_level1ChildrenCount;
+                    $tblMemberRewards->tran_date = Carbon::now();
+                    $tblMemberRewards->reward_name = $l_levelMemberRequirement->reward;
+                    $tblMemberRewards->qualifying_date = Carbon::now();
+                    $tblMemberRewards->save();
+                }
+            }
+
+            if($l_level2RewardTaken == false){
+                $l_levelMemberRequirement = $this->getLevelMemberRequirementsForReward(2);
+                if($l_level2ChildrenCount > $l_levelMemberRequirement->required_members){
+                    $tblMemberRewards = new MemberRewards();
+                    $tblMemberRewards->member_id = $parent->member_id;
+                    $tblMemberRewards->level_id = 2;
+                    $tblMemberRewards->member_count = $l_level2ChildrenCount;
+                    $tblMemberRewards->tran_date = Carbon::now();
+                    $tblMemberRewards->reward_name = $l_levelMemberRequirement->reward;
+                    $tblMemberRewards->qualifying_date = Carbon::now();
+                    $tblMemberRewards->save();
+                }
+            }
+
+            if($l_level3RewardTaken == false){
+                $l_levelMemberRequirement = $this->getLevelMemberRequirementsForReward(3);
+                if($l_level3ChildrenCount > $l_levelMemberRequirement->required_members){
+                    $tblMemberRewards = new MemberRewards();
+                    $tblMemberRewards->member_id = $parent->member_id;
+                    $tblMemberRewards->level_id = 3;
+                    $tblMemberRewards->member_count = $l_level3ChildrenCount;
+                    $tblMemberRewards->tran_date = Carbon::now();
+                    $tblMemberRewards->reward_name = $l_levelMemberRequirement->reward;
+                    $tblMemberRewards->qualifying_date = Carbon::now();
+                    $tblMemberRewards->save();
+                }
+            }
+            if($l_level4RewardTaken == false){
+                $l_levelMemberRequirement = $this->getLevelMemberRequirementsForReward(4);
+                if($l_level4ChildrenCount > $l_levelMemberRequirement->required_members){
+                    $tblMemberRewards = new MemberRewards();
+                    $tblMemberRewards->member_id = $parent->member_id;
+                    $tblMemberRewards->level_id = 4;
+                    $tblMemberRewards->member_count = $l_level4ChildrenCount;
+                    $tblMemberRewards->tran_date = Carbon::now();
+                    $tblMemberRewards->reward_name = $l_levelMemberRequirement->reward;
+                    $tblMemberRewards->qualifying_date = Carbon::now();
+                    $tblMemberRewards->save();
+                }
+            }
+            if($l_level5RewardTaken == false){
+                $l_levelMemberRequirement = $this->getLevelMemberRequirementsForReward(5);
+                if($l_level5ChildrenCount > $l_levelMemberRequirement->required_members){
+                    $tblMemberRewards = new MemberRewards();
+                    $tblMemberRewards->member_id = $parent->member_id;
+                    $tblMemberRewards->level_id = 5;
+                    $tblMemberRewards->member_count = $l_level5ChildrenCount;
+                    $tblMemberRewards->tran_date = Carbon::now();
+                    $tblMemberRewards->reward_name = $l_levelMemberRequirement->reward;
+                    $tblMemberRewards->qualifying_date = Carbon::now();
+                    $tblMemberRewards->save();
+                }
+            }
+            if($l_level6RewardTaken == false){
+                $l_levelMemberRequirement = $this->getLevelMemberRequirementsForReward(6);
+                if($l_level6ChildrenCount > $l_levelMemberRequirement->required_members){
+                    $tblMemberRewards = new MemberRewards();
+                    $tblMemberRewards->member_id = $parent->member_id;
+                    $tblMemberRewards->level_id = 6;
+                    $tblMemberRewards->member_count = $l_level6ChildrenCount;
+                    $tblMemberRewards->tran_date = Carbon::now();
+                    $tblMemberRewards->reward_name = $l_levelMemberRequirement->reward;
+                    $tblMemberRewards->qualifying_date = Carbon::now();
+                    $tblMemberRewards->save();
+                }
+            }
         }
-
-        // foreach($this->arrayParents as $m){
-        //     $current_date = date("Y-m-d H:i:s");
-        //     $l_memberID = $m->member_id;
-        //     $l_memberCount = MemberMap::where('parent_id', $l_memberID)->count();
-        //     $l_calculatedLevel = $this->getCalculatedLevel($l_memberCount);
-        //     $l_currentLevel = $m->level_ctr;
-
-        //     // $l_memberCount = $m->member_count + 1;
-
-        //     if($l_calculatedLevel != $l_currentLevel){
-        //         DB::update('update members set current_level = ? where member_id = ?',[$l_calculatedLevel,$l_memberID]);
-        //         $l_reward = $this->getLevelReward($l_calculatedLevel);
-        //         if(strlen(trim($l_reward)) >0){
-        //             $tblReward = new MemberRewards();
-        //             $tblReward->member_id = $l_memberID;
-        //             $tblReward->level_id = $l_calculatedLevel;
-        //             $tblReward->member_count = $l_memberCount;
-        //             $tblReward->tran_date = $current_date;
-        //             $tblReward->reward_name = $l_reward;
-        //             $tblReward->save();
-        //         }
-
-        //         // $tblLevelAchiever = new LevelAchiever();
-        //         // $tblLevelAchiever->member_id = $l_memberID;
-        //         // $tblLevelAchiever->level_id = $l_calculatedLevel;
-        //         // $tblLevelAchiever->tran_date = $current_date;
-        //         // $tblLevelAchiever->qualifying_date = $current_date;
-        //         // $tblLevelAchiever->save();
-        //     }
-        // }
     }
 
-    /**
-     ************************************************************* called by updatePaymentStatus()
-     */
     private function addRechargePoints($request){
-        $tblMemberMap = MemberMap::where('member_id',$request->member_id)->get();
-        $this->addRechargePointRecord($request->member_id, $request->member_id, $request->payment_int_id);
-
-
-        // foreach ( $tblMemberMap as $memberMap){
-        //     $this->addRechargePointRecord($memberMap->member_id, $request->member_id, $request->payment_int_id);
-        // };
+        $this->addRechargePointRecord($request->member_id,  $request->payment_int_id);
     }
 
-    private function addRechargePointRecord($member_id, $ref_member_id,$payment_id){
+    private function addRechargePointRecord($member_id, $payment_id){
+        $tblMember =  Member::where('member_id', $member_id)->first();
+        $l_parent_id = $tblMember->parent_id;
+
         $tblMemberWallet = MemberWallet::where('member_id', $member_id)->first();
         $tbl = new RechargePointRegister();
         $tbl->member_id = $member_id;
-        $tbl->ref_member_id = $ref_member_id;
-        $tbl->payment_id = $payment_id;
-        $tbl->tran_type = 'MEMBERSHIP_BONUS';
+        $tbl->ref_member_id = $member_id;
         $tbl->tran_date = date('Y-m-d H:i:s');
-        $tbl->recharge_points_added = $this->MEMBERSHIP_POINTS;
-        $tbl->balance_points += $tblMemberWallet->non_redeemable + $this->MEMBERSHIP_POINTS;
+        $tbl->payment_id = $payment_id;
+        $tbl->welcome_points_added = $this->MEMBERSHIP_POINTS;
+        $tbl->welcome_points_balance += $tblMemberWallet->welcome_amt + $this->MEMBERSHIP_POINTS;
+        $tbl->tran_type = 'MEMBERSHIP_BONUS';
         $tbl->save();
+
+        $tblMemberWallet->welcome_amt = $tblMemberWallet->welcome_amt + $this->MEMBERSHIP_POINTS;
+        $tblMemberWallet->save();
+
+
+        $tblMemberWallet = MemberWallet::where('member_id', $l_parent_id)->first();
+        $tbl = new RechargePointRegister();
+        $tbl->member_id = $l_parent_id;
+        $tbl->ref_member_id = $member_id;
+        $tbl->tran_date = date('Y-m-d H:i:s');
+        $tbl->payment_id = $payment_id;
+        $tbl->welcome_points_added = $this->MEMBERSHIP_POINTS;
+        $tbl->welcome_points_balance += $tblMemberWallet->welcome_amt + $this->MEMBERSHIP_POINTS;
+        $tbl->tran_type = 'LEADERSHIP_BONUS';
+        $tbl->save();
+
+        $tblMemberWallet->welcome_amt = $tblMemberWallet->welcome_amt + $this->MEMBERSHIP_POINTS;
+        $tblMemberWallet->save();
+
     }
 
-    private function updateMemberWallet($member_id){
+    private function addMemberWallet($member_id){
         $tbl1 = new MemberWallet();
         $tbl1->member_id = $member_id;
         $tbl1->total_members = 0;
-        $tbl1->welcome_amt = $this->MEMBERSHIP_FEE + $this->MEMBERSHIP_POINTS;
+        $tbl1->welcome_amt = $this->MEMBERSHIP_FEE; // + $this->MEMBERSHIP_POINTS;
         $tbl1->redeemable_amt = 0;
         $tbl1->non_redeemable = 0; //$this->MEMBERSHIP_POINTS;
         $tbl1->level_income = 0;
@@ -1121,231 +1756,6 @@ class MemberAPIController extends Controller
         $tbl1->transferout_amount = 0;
         $tbl1->save();
     }
-
-     /**
-     ************************************************************* called by updateClub()
-     */
-     private function getHierarchyClubCount($arr, $clubID){
-        $cnt = 0;
-        foreach($arr as $m){
-            if ($m->designation_id == $clubID)
-            {
-                $cnt++;
-            }
-        }
-        return $cnt;
-    }
-
-     /**
-     ************************************************************* called by updateClub()
-     */
-    private function getDownlineLevelCount($arr, $levelCtr){
-        $cnt = 0;
-        foreach($arr as $m){
-            if ($m->level_ctr == $levelCtr)
-            {
-                return $m->level_count;
-            }
-        }
-        return 0;
-    }
-
-
-    // private function getQualifyingClubMembers($clubID, $designationID){
-    //     $req = 0;
-    //     foreach($this->arrayClubMaster as $club){
-    //         if ($club->id == $clubID)
-    //         {
-    //             switch($designationID){
-    //                 case 2: //bronz
-    //                     $req = $club->bronz_req;
-    //                     break;
-    //                 case 3: //bronz
-    //                     $req = $club->silver_req;
-    //                     break;
-    //                 case 4: //bronz
-    //                     $req = $club->gold_req;
-    //                     break;
-    //                 case 5: //bronz
-    //                     $req = $club->diamond_req;
-    //                     break;
-
-    //             }
-    //         }
-    //     }
-    //     return $req;
-    // }
-
-
-    // //Extract and Fill Level wise member count of parents
-    // private function populateLevelWiseMemberCount($memberID){
-    //     $sql = 'SELECT m1.member_id,m1.level_ctr, COUNT(m1.member_id) AS MemberCount
-    //         FROM member_maps m1
-    //         WHERE m1.member_id IN (SELECT m2.parent_id FROM member_maps m2 WHERE m2.member_id = ' . $memberID . ')
-    //         GROUP BY m1.member_id,m1.level_ctr
-    //         ORDER BY m1.member_id,m1.level_ctr';
-
-    //     $tblTemp = DB::select($sql);
-
-    //     foreach ($tblTemp as $rec){
-    //         $this->arrayLevelWiseMemberCount[] = $rec;
-    //     }
-    // }
-
-
-    // //Get Level Reward
-    // private function getLevelReward($levelCtr){
-    //     foreach($this->arrayLevelMaster as $m){
-    //         if ($m->level == $levelCtr)
-    //         {
-    //             return $m->reward;
-    //         }
-    //         return '';
-    //     }
-    // }
-
-    // //Get Level Commission Percent
-    // private function getRequiredMembers($levelCtr){
-    //     foreach($this->arrayLevelMaster as $m){
-    //         if ($m->level == $levelCtr)
-    //         {
-    //             return $m->required_members;
-    //         }
-    //         return 0;
-    //     }
-    // }
-
-
-    // private function getClub($count){
-
-    //     foreach($this->arrayLevelWiseMemberCount as $m){
-    //         if (($m->required_members >= $count)  && ($m->level_ctr))
-    //         {
-    //             return $m->member_count;
-    //         }
-    //         return 0;
-    //     }
-    // }
-
-    // private function getCalculatedLevel($memberCount){
-    //     foreach($this->arrayLevelMaster as $m){
-    //         if ($m->required_members >= $memberCount)
-    //         {
-    //             return $m->level;
-    //         }
-    //         return 0;
-    //     }
-    // }
-
-
-
-    // /**
-    //  * GENERATE NEW TXNID FOR PAYMENT GATEWAY
-    //  * ==================================================================
-    //  */
-    // public function newTxnID()
-    // {
-    //     $dt = Carbon::now();
-    //     $dt1 = $dt->format('Ymd');
-
-    //     $param = Param::where('param','TXN_COUNTER')->first();
-    //     $intValue =$param->int_value;
-    //     $prefix = $param->string_value;
-    //     $param->int_value = $intValue + 1;
-    //     $param->save();
-    //     $retVal = $prefix.$dt1. Str::padLeft($intValue,5,'0');
-    //     return $retVal;
-    // }
-
-
-
-    /**
-     * UPDATE PAYMENT STATUS AS REPORTED BY MOBILE APP
-     * ======================================================================
-     * If success => Create new Member and MemberUser
-     *            => update Member table with temp_id
-     *
-     * Methods to Invoke
-     *      1. createMemberUser
-     *      2. addMember
-     *      3. MapMember
-     *      4. UpdateLevelIncomes
-     *      5. UpdateMobileRechargePoints
-     *      6. UpdateLevelAchievers
-     *      7. AddCashbackReward
-     *      8. UpdateRewardIncome
-     *      9. UpdateRewardTable
-     *      10. UpdateTeamMobileRechargeIncome
-     *      11. NotifyMembers
-     */
-
-    // private function updateDesignation(Request $request){
-
-    // }
-
-    // /**
-    //  * 5. Update Mobile Recharge Points
-    //  * ==============================================
-    //  * 30 points added to recharge wallet
-    //  * [add in recharge_point_register]
-    //  */
-    // private function updateMobileRechargePoints(){
-
-
-    // }
-
-    // /**
-    //  * 6. Update Level Achevers
-    //  * ============================================
-    //  * Depending upon no of members update level of a member
-    //  */
-    // private function updateLevelAchievers(){
-    //     foreach($this->arrayParents as $parent){
-    //         $current_level = $parent->current_level;
-    //         $new_level = $current_level;
-
-
-
-    //         $cnt = MemberMap::where('member_id',$parent->member_id)->get()->count();
-    //         switch(true){
-    //             case ($cnt >= $this->ROYALTY_REQ_NUM):
-    //                 $new_level = 5;
-    //                 break;
-    //             case ($cnt >= $this->DIAMOND_REQ_NUM):
-    //                 $new_level = 4;
-    //                 break;
-    //             case ($cnt >= $this->GOLD_REQ_NUM):
-    //                 $new_level = 3;
-    //                 break;
-    //             case ($cnt >= $this->SILVER_REQ_NUM):
-    //                 $new_level = 2;
-    //                 break;
-    //             case ($cnt >= $this->BRONZ_REQ_NUM):
-    //                 $new_level = 1;
-    //                 break;
-    //             default:
-    //                 $new_level = 0;
-    //                 break;
-    //         }
-    //         if($current_level != $new_level){
-    //             $tblMember = Member::where('member_id',$parent->member_id)->first();
-    //             $tblMember->current_level = $new_level;
-    //             $tblMember->save();
-    //         }
-
-    //     }
-    // }
-
-
-    // //Not needed at this point of time
-    // private function updateRewardIncome(){
-
-    // }
-
-    // //Not needed at this point of time
-    // private function updateTeamMobileRechargeIncome(){
-
-    // }
 
 }
 
