@@ -356,9 +356,11 @@ function getUniqueReferalCode(){
     $flag = true;
     while($flag){
         $uniqueCode = getUniqueCode();
-        $tblMember = Member::where('referal_code',$uniqueCode)->first();
-        if($tblMember == null){
-            $flag = false;
+        if(strlen($uniqueCode == 10)){
+            $tblMember = Member::where('referal_code',$uniqueCode)->first();
+            if($tblMember == null){
+                $flag = false;
+            }
         }
     }
     return $uniqueCode;
