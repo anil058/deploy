@@ -194,10 +194,9 @@ class DBFunctions{
 
 
     public function getCompanyLevelAchievers($designation){
-        $sql="SELECT a.member_id, p.level_ctr, concat(m.first_name,' ',m.last_name) member_name, m.designation_id
+        $sql="SELECT a.member_id, concat(m.first_name,' ',m.last_name) member_name, m.designation_id
             FROM club_achievers a
             INNER JOIN members m ON a.member_id=m.member_id
-            INNER JOIN member_maps p ON a.member_id=p.member_id
             WHERE a.designation_id=".$designation;
 
         $records = DB::select($sql);
