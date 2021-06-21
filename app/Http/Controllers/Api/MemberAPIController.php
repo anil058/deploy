@@ -302,8 +302,8 @@ class MemberAPIController extends Controller
 
            $this->addMemberWallet($request->member_id);
            $this->updateLevelIncomes($request);
-           $this->updateClub($request->member_id);
            $this->updateClubIncome($request);
+           $this->updateClub($request->member_id);
            $this->updateRewards($request);
            $this->addRechargePoints($request);
 
