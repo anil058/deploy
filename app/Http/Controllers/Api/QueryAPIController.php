@@ -78,7 +78,7 @@ class QueryAPIController extends Controller
                     DATE_FORMAT(i.created_at,'%d/%m/%Y') AS tran_date
                 FROM member_incomes i
                 LEFT JOIN members m ON i.ref_member_id=m.member_id
-                WHERE i.income_type = 'CLUB' and i.member_id = ". $request->user()->id;
+                WHERE i.income_type = 'Club Income' and i.member_id = ". $request->user()->id;
 
             $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
             $records = DB::select($sql);
