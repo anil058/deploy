@@ -302,9 +302,9 @@ class MemberAPIController extends Controller
 
            $this->addMemberWallet($request->member_id);
            $this->updateLevelIncomes($request);
-           $this->updateClubIncome($request);
            $this->updateRewards($request);
            $this->addRechargePoints($request);
+           $this->updateClubIncome($request);
            $this->updateClub($request->member_id);
 
            //When confirm, updated closed flag
