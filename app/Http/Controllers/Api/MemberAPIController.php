@@ -1017,7 +1017,7 @@ class MemberAPIController extends Controller
 
 
             //Update Gold Club
-            if($l_silverAchieved == false){
+            if($l_goldAchieved == false){
                 $ll_clb = $this->getClubRequirement($this->arrayClubMaster, 4);
 
                 $ll_bronzRequired = $ll_clb->bronz_req;
