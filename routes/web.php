@@ -20,7 +20,7 @@ Route::get('/privacypolicy', function () {
     return view('terms');
 });
 Route::get('/terms', function () {
-    return view('terms');
+    return view('privacypolicy');
 });
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
