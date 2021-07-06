@@ -16,15 +16,37 @@ use App\Models\MemberWallet;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
+// use Razorpay\Api\Api;
 
 class RedeemController extends Controller
 {
+    // private $api_key;
+    // private $api_secret;
+
     public function __construct()
     {
-        $this->middleware('auth:api')->except(['MemberRewards']);
+        $this->middleware('auth:api')->except(['MemberRewards','RazorHooks']);
+        // $this->api_key = env('RAZOR_KEY','');
+        // $this->api_secret = env('RAZOR_SECRET');
     }
 
+    // public function RazorHooks(Request $request){
+    //     $api = new Api($this->api_key, $this->api_secret);
+    //     $webhookSecret = config('services.razorpay.webhook_secret');
+    //     $webhookSignature = $request->header('X-Razorpay-Signature');
+    //     $payload = $request->getContent();
+    //     // $this->razorpay->utility->verifyWebhookSignature($payload, $webhookSignature, $webhookSecret);
+    //     $api->utility->verifyWebhookSignature($payload, $webhookSignature, $webhookSecret);
+
+    //     //$api->utility->verifyWebhookSignature($webhookBody, $webhookSignature, "123456789");
+    //     $response = ['status' => false, 'message' => $ex->getMessage()];
+    //     return response($response, 200);
+    // }
+
     public function RequestRedeem(Request $request){
+        return response()->json(['status' => false, 'message' => "Server under maintenance, try again later"]);
+
+
         //Validate Input
         $validator = Validator::make($request->all(), [
             'amount' => 'required|numeric',
@@ -35,7 +57,7 @@ class RedeemController extends Controller
             $errors = $validator->errors()->first();
             return response()->json(['status' => false, 'message' => $errors]);
         }
-        
+
         DB::beginTransaction();
         try{
             $tblMemberWallet = MemberWallet::where('member_id', $request->user()->id)->first();
@@ -55,7 +77,7 @@ class RedeemController extends Controller
             $tblMemberWallet->redeemable_amt -= $request->amount;
             $tblMemberWallet->save();
 
-            $sql ="select cast(request_amount as char) request_amount,status,date_format(approved_on,'%d/%m/%Y') approved_on 
+            $sql ="select cast(request_amount as char) request_amount,status,date_format(approved_on,'%d/%m/%Y') approved_on
                 from payout_requests
                 WHERE member_id=".$request->user()->id;
 
@@ -78,7 +100,7 @@ class RedeemController extends Controller
         try{
             $tblMemberWallet = MemberWallet::where('member_id',  $request->user()->id)->first();
 
-            $sql ="select cast(request_amount as char) request_amount,status,date_format(approved_on,'%d/%m/%Y') approved_on 
+            $sql ="select cast(request_amount as char) request_amount,status,date_format(approved_on,'%d/%m/%Y') approved_on
             from payout_requests
             WHERE member_id=".$request->user()->id;
 

@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
-    <title>💥 Mansha Real Rupees</title>
+    <title>💥 Mansha Real</title>
     <link rel="stylesheet" href="{{ asset('css1/bootstrap.css') }}">
     <link rel="stylesheet" href="{{ asset('css1/bootstrap-select.css') }}">
     <link rel="stylesheet" href="{{ asset('css1/font-awesome.css') }}">
@@ -22,7 +22,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="keywords"
-        content="MLM, Multi level marketing, Hazaribag, Hazaribag MLM, Manshaa Real Rupees, Recharge, Online Recharge, Mobile Recharge, Networking, Investment" />
+        content="MLM, Multi level marketing, Hazaribag, Hazaribag MLM, Manshaa Real, Recharge, Online Recharge, Mobile Recharge, Networking, Investment" />
     <script type="application/x-javascript">
         addEventListener("load", function () {
             setTimeout(hideURLbar, 0);
@@ -45,35 +45,33 @@
 </head>
 
 <body class="antialiased">
-    <div
-        class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center sm:pt-0">
-        @if (Route::has('login'))
-        <div class="hidden fixed top-0 right-0 px-6 py-4 sm:block">
-            @auth
-            <a href="{{ url('/home') }}" class="text-sm text-gray-700 underline">Home</a>
-            @else
-            <a href="{{ route('login') }}" class="text-sm text-gray-700 underline">Login</a>
-
-            @if (Route::has('register'))
-            <a href="{{ route('register') }}" class="ml-4 text-sm text-gray-700 underline">Register</a>
-            @endif
-            @endif
-        </div>
-        @endif
+    <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center sm:pt-0">
+            {{-- @if (Route::has('login'))
+                <div class="hidden fixed top-0 right-0 px-6 py-4 sm:block">
+                    @auth
+                        <a href="{{ url('/home') }}" class="text-sm text-gray-700 underline">Home</a>
+                    @else
+                        <a href="{{ route('login') }}" class="text-sm text-gray-700 underline">Login</a>
+                        @if (Route::has('register'))
+                            <a href="{{ route('register') }}" class="ml-4 text-sm text-gray-700 underline">Register</a>
+                        @endif
+                    @endif
+                </div>
+            @endif --}}
 
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <header>
                 <div class="container">
                     <!--logo-->
                     <div class="logo" id="myModalLabel">
-                        <h1><a href="index.html"> <span class="HeadCSS"> MANSHAA REAL RUPEES</span></a></h1>
+                        <h1><a href="/home"> <span class="HeadCSS"> MANSHAA REAL</span></a></h1>
                     </div>
                     <!--//logo-->
                     <div class="w3layouts-login1">
-                        <a href="terms.html">Terms and Conditions</a>
+                        <a href="/terms">Terms and Conditions</a>
                     </div>
                     <div class="w3layouts-login1">
-                        <a href="privacy-policy.html">Privacy Policy</a>
+                        <a href="/privacypolicy">Privacy Policy</a>
                     </div>
 
                     <div class="w3layouts-login">
@@ -90,7 +88,7 @@
                                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
                                         &times;</button>
                                     <h4 class="modal-title">
-                                        MANSHAA REAL RUPEES</h4>
+                                        MANSHAA REAL</h4>
                                 </div>
                                 <div class="modal-body">
                                     <div class="row">
@@ -790,10 +788,10 @@
                 <div class="w3l-footer-bottom">
                     <div class="container-fluid">
                         <div class="col-md-4 w3-footer-logo">
-                            <h2><a href="index.html">Mansha Real Rupees</a></h2>
+                            <h2><a href="index.html">Mansha Real</a></h2>
                         </div>
                         <div class="col-md-8 agileits-footer-class">
-                            <p>© 2020 Mansha Real Rupees. All Rights Reserved | Design by <a href="#"
+                            <p>© 2020 Mansha Real All Rights Reserved | Design by <a href="#"
                                     target="_blank">JumboCoder</a> </p>
                         </div>
                         <div class="clearfix"> </div>

@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Helpers\DBFunctions;
+use App\Helpers\RazorPayX;
 
 /**
  * KNOWLEDGE
@@ -60,6 +61,8 @@ class MemberAPIController extends Controller
     private $LEVEL2_LEADERSHIP_INCOME;
     private $ALLOW_COMPANY_REFERAL_CODE = false;
 
+
+
     //Memory Tables
     private $arrayParents = array();
     private $arrayLevelMaster = array();
@@ -70,10 +73,23 @@ class MemberAPIController extends Controller
     public function __construct()
     {
         $this->dbf = new DBFunctions();
-        $this->middleware('auth:api')->except(['showUser','createTempUser','updatePaymentStatus','getRefererName','getRecipientName']);
+        $this->middleware('auth:api')->except(['showUser','createTempUser','updatePaymentStatus','getRefererName','getRecipientName','isMemberFeePaid']);
+
     }
 
     public function showUser(Request $request){
+        $x =  new RazorPayX();
+        // $x->createContact('Anil Mishra','anil058@gmail.com','9835718779',1);
+        // $x->updateContact('cont_HRmEflKoXFPoAC','Anil Mishra','anil058@gmail.com','9835718779',1);
+        // $x->fetchAllContacts();
+        // $x->fetchContactByID('cont_HRmEflKoXFPoAC');
+        // $x->createFundAccountBank('cont_HRmEflKoXFPoAC','Anil Fund','HDFC000910A','125484575487548545');
+        // $x->fetchAllFundAccounts();
+        // $x->fetchFundAccountByID('fa_HRw9Ma7ONVqROg');
+        $x->createPayout('fa_HRw9Ma7ONVqROg',250,'1234');
+        // $x->fetchAllPayouts();
+        //$x->fetchPayoutByID('pout_HS031qLxapZIhf');
+
         return "ANIL MISHRA"; //auth()->user();
     }
 
@@ -89,8 +105,12 @@ class MemberAPIController extends Controller
                 "address" => "string|max:200",
                 'pan_no' => 'required|string|max:10',
                 'bank_name' => 'required|string|max:30',
-                'account_no' => 'required|string|max:30',
+                'account_no' => 'required|string|min:11|max:16',
+                'ifsc_code' => 'required|string|min:11|max:11',
+                'sex' => 'required|string|min:4|max:6'
             ]);
+
+
 
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
@@ -109,6 +129,7 @@ class MemberAPIController extends Controller
                 return response($response, 200);
             }
 
+
             $tblMember->first_name = $request->first_name;
             $tblMember->last_name = $request->last_name;
             $tblMember->father = $request->father;
@@ -117,6 +138,27 @@ class MemberAPIController extends Controller
             $tblMember->pan_no = $request->pan_no;
             $tblMember->bank_name = $request->bank_name;
             $tblMember->account_number = $request->account_no;
+            $tblMember->ifsc_code = $request->ifsc_code;
+            $tblMember->sex = $request->sex;
+
+            if($request->has('aadhar')) {
+                $tblMember->aadhar_id_no = $request->aadhar;
+            }
+            if($request->has('driving_license')) {
+                $tblMember->dl_id_no = $request->driving_license;
+            }
+            if($request->has('passport_no')) {
+                $tblMember->passport_id_no = $request->passport_no;
+            }
+            if($request->has('voter_id')) {
+                $tblMember->voter_id_no = $request->voter_id;
+            }
+            if($request->has('nominee_name')) {
+                $tblMember->nominee_name = $request->nominee_name;
+            }
+            if($request->has('relation')) {
+                $tblMember->relation = $request->relation;
+            }
 
             $tblMember->save();
 
@@ -158,14 +200,24 @@ class MemberAPIController extends Controller
             $profile_img = base64_encode($imagedata);
 
             $response = [
-                'status' => true,
+                'status' => $tblMember->active,
                 'first_name' => $tblMember->first_name,
                 'last_name' => $tblMember->last_name,
                 'father' => $tblMember->father,
                 'email' => $tblMember->email,
                 'address' => $tblMember->address,
                 'pan_no' => $tblMember->pan_no,
-                'image' => $profile_img
+                'bank_name' => $tblMember->bank_name,
+                'account_number' => $tblMember->account_number,
+                'ifsc_code' => $tblMember->ifsc_code,
+                'sex' => $tblMember->sex,
+                'aadhar' => $tblMember->aadhar_id_no,
+                'driving_license' => $tblMember->dl_id_no,
+                'passport_no' => $tblMember->passport_id_no,
+                'voter_id' => $tblMember->voter_id_no,
+                'nominee_name' => $tblMember->nominee_name,
+                'relation' => $tblMember->relation,
+                'image' => $profile_img,
                 ];
             return response($response,200);
 
@@ -192,6 +244,207 @@ class MemberAPIController extends Controller
      *addRechargePoints($request);
      */
 
+    public function createTempUser(Request $request){
+        DB::beginTransaction();
+        try{
+            //Validate request
+            $validator = Validator::make($request->all(), [
+                'first_name' => 'required|string|max:50',
+                'last_name' => 'required|string|max:50',
+                'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+                'referal_code' => 'required|max:10|min:10',
+                "email" => "required|email",
+                "password" => "required|string|max:50",
+                "address" => "string|max:200",
+                // "otp" => "required|numeric|min:1000|max:9999",
+            ]);
+
+            // $txn_id = $this->newTxnID();
+            // $txn_id = createRazorpayTempOrder()
+            // dd($txn_id);
+            if ($validator->fails()) {
+                $errors = $validator->errors()->first();
+                $response = ['status' => false, 'message' => $errors];
+                DB::rollBack();
+                return response($response, 200);
+                // return response()->json(['status' => false, 'message' => $errors],200);
+            }
+
+            $this->populateParams();
+
+            if ($this->ALLOW_NEW_MEMBERS == false){
+                $response = ['status' => false, 'message' => 'System Error! Please try again after sometime'];
+                DB::rollBack();
+                return response($response, 200);
+            }
+
+
+            if ($request->referal_code == '0000000000'){
+                if ($this->ALLOW_COMPANY_REFERAL_CODE == false){
+                    $response = ['status' => false, 'message' => 'Company Referal Code has been prohibited'];
+                    DB::rollBack();
+                    return response($response, 200);
+                }
+            }
+            // $this->populateParams();
+
+            //Check if referal code is valid
+            // $tblReferal = Referal::where('referal_code', $request->referal_code)
+            //                 ->whereDate('expiry_at', '>=', Carbon::now()->toDateString())
+            //                 ->whereNull('temp_id')->first();
+
+            $tblReferal = Member::where('referal_code', $request->referal_code)->first();
+
+            if($tblReferal === null){
+                $response = ['status' => false, 'message' => 'Invalid Referal Code'];
+                DB::rollBack();
+                return response($response, 200);
+            }
+
+            //Check if there is an existing user with same mobile no
+            $tblMember = Member::where('mobile_no', $request->mobile_no)
+                        -> orWhere ('email', $request->email)->first();
+            if($tblMember){
+                $response = ['status' => false, 'message' => 'User with this mobile no or email already exists'];
+                DB::rollBack();
+                return response($response, 200);
+            }
+
+
+            //Check if mobile no exists in TempMember if yes replace the record, else add
+            $tempUser = TempMember::where('mobile_no', $request->mobile_no)->first();
+            if(!$tempUser){
+                $tempUser = new TempMember();
+            }else {
+            //If payment is done but Member Record not updated
+                $tblPaymentGateway = PaymentGateway::where('temp_id', $tempUser->id)
+                                            ->where('payment_id','<>','null')->first();
+
+                if($tblPaymentGateway != null){
+                    $response = ['status' => false, 'message' => 'Amount Paid, Please contact Admin'];
+                    DB::rollBack();
+                    return response($response, 200);
+                }
+            }
+
+
+            $tempUser->first_name = $request->first_name;
+            $tempUser->last_name = $request->last_name;
+            $tempUser->mobile_no = $request->mobile_no;
+            $tempUser->referal_code = $request->referal_code;
+            $tempUser->email = $request->email;
+            $tempUser->password = Hash::make($request->password);
+            $tempUser->address = $request->address;
+            $tempUser->parent_id = $tblReferal->member_id;
+
+            $membershipFee = $this->MEMBERSHIP_FEE;
+            $taxPercent = $this->TAX_PERCENT;
+            $taxAmount = round($this->MEMBERSHIP_FEE * $this->TAX_PERCENT * 0.01,2);
+            $netAmount = $this->MEMBERSHIP_FEE + $taxAmount;
+
+            $tempUser->membership_fee = $membershipFee;
+            $tempUser->tax_percent = $taxPercent;
+            $tempUser->tax_amount = $taxAmount;
+            $tempUser->net_amount = $netAmount;
+
+            $tempUser->expiry_at = Carbon::now()->addDays(3);
+            $tempUser->ip = $request->ip();
+            $tempUser->save();
+
+            generateNewMemberOTP($request->mobile_no);
+
+            $orderid = "";
+            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee , $taxPercent);
+            if(strlen($orderid) == 0){
+                throw new Exception("Could not generate order id");
+            }
+            DB::commit();
+            $response = ['status' => true,
+                'temp_id' => $tempUser->id,
+                'txn_id' => $orderid,
+                'message' => 'Successfully Created Temporary User',
+                'fee_amount' => $netAmount * 100
+            ];
+            return response($response, 200);
+        } catch(Exception $e) {
+            $response = ['status' => false, 'message' => $e->getMessage()];
+            DB::rollBack();
+            return response($response, 200);
+        }
+    }
+
+    private function createMember(Request $request, $tblTempMember, $tblPaymentGateway){
+        $msg = 'Member Created Successfully';
+        $errFlag = false;
+
+        DB::beginTransaction();
+        try{
+            //Inject default values
+            //$request->memberID = $request->user()->id;
+            $request->jumboErrorStatus = false;
+            $request->jumboErrorMessage = "";
+            $request->name = $tblTempMember->first_name.' '.$tblTempMember->last_name;
+            $request->mobile_no = $tblTempMember->mobile_no;
+            $request->parent_id = $tblTempMember->parent_id;
+
+            $this->populateParams();
+            $this->populateLevelMaster();
+            $this->populateClubMaster();
+            $this->createMemberUser($request);
+            $this->addMember($request);
+            $this->populateParents($request->parent_id);
+            $this->mapMember($request);
+
+            //Save Fee in Deposit
+            $tblMemberDeposits = new MemberDeposit();
+            $tblMemberDeposits->member_id = $request->member_id;
+            $tblMemberDeposits->gateway_id = $tblPaymentGateway->id;
+            $tblMemberDeposits->amount = $tblPaymentGateway->amount;
+            $tblMemberDeposits->tax_percent = $tblPaymentGateway->tax_percent;
+            $tblMemberDeposits->tax_amount = $tblPaymentGateway->tax_amount;
+            $tblMemberDeposits->net_amount = $tblPaymentGateway->net_amount;
+            $tblMemberDeposits->deposit_type = 'MEMBERSHIP_FEE';
+            $tblMemberDeposits->save();
+
+            $this->addMemberWallet($request->member_id);
+            $this->updateLevelIncomes($request);
+            $this->updateRewards($request);
+            $this->addRechargePoints($request);
+            $this->updateClubIncome($request);
+            $this->updateClub($request->member_id);
+
+            //When confirm, updated closed flag
+            $tblPaymentGateway->member_id = $request->member_id;
+            $tblPaymentGateway->closed =true;
+            $tblPaymentGateway->save();
+
+            $rp = new RazorPayX();
+            $razor_contact_id = $rp->createContact($request->member_name,$request->email,$request->mobile_no,$request->member_id);
+
+            if (strlen($razor_contact_id) == 0){
+                $msg = 'Success, Link Account Pending, Contact Admin';
+             // throw new Exception("Unable to create bank records");
+            } else {
+                 $tblMemberRazor = Member::where('member_id', $request->member_id)->first();
+                 $tblMemberRazor->razor_contact_id = $razor_contact_id;
+                 $tblMemberRazor->save();
+            }
+
+
+            DB::commit();
+            $retObj = ['status' => true, 'message' => $msg];
+            return $retObj;
+            // $response = ['status' => true, 'message' => $msg];
+            // return response($response, 200);
+        } catch(Exception $ex) {
+            $retObj = ['status' => false, 'message' => $ex];
+            return $retObj;
+            // $response = ['status' => false, 'message' => $ex->getMessage()];
+            // DB::rollBack();
+            // return response($response, 200);
+        }
+    }
+
     public function updatePaymentStatus(Request $request){
         //Validate Input
         $validator = Validator::make($request->all(), [
@@ -203,6 +456,7 @@ class MemberAPIController extends Controller
                Rule::in(['SUCCESS', 'FAILURE', 'PENDING']),
            ],
        ]);
+
 
        //General request validation
        if ($validator->fails()) {
@@ -271,56 +525,154 @@ class MemberAPIController extends Controller
         return response()->json(['status' => false, 'message' => 'Unsuccessful Payment']);
        }
 
-       DB::beginTransaction();
-       try{
-           //Inject default values
-           //$request->memberID = $request->user()->id;
-           $request->jumboErrorStatus = false;
-           $request->jumboErrorMessage = "";
-           $request->name = $tblTempMember->first_name.' '.$tblTempMember->last_name;
-           $request->mobile_no = $tblTempMember->mobile_no;
-           $request->parent_id = $tblTempMember->parent_id;
-
-           $this->populateParams();
-           $this->populateLevelMaster();
-           $this->populateClubMaster();
-           $this->createMemberUser($request);
-           $this->addMember($request);
-           $this->populateParents($request->parent_id);
-           $this->mapMember($request);
-
-           //Save Fee in Deposit
-           $tblMemberDeposits = new MemberDeposit();
-           $tblMemberDeposits->member_id = $request->member_id;
-           $tblMemberDeposits->gateway_id = $tblPaymentGateway->id;
-           $tblMemberDeposits->amount = $tblPaymentGateway->amount;
-           $tblMemberDeposits->tax_percent = $tblPaymentGateway->tax_percent;
-           $tblMemberDeposits->tax_amount = $tblPaymentGateway->tax_amount;
-           $tblMemberDeposits->net_amount = $tblPaymentGateway->net_amount;
-           $tblMemberDeposits->deposit_type = 'MEMBERSHIP_FEE';
-           $tblMemberDeposits->save();
-
-           $this->addMemberWallet($request->member_id);
-           $this->updateLevelIncomes($request);
-           $this->updateRewards($request);
-           $this->addRechargePoints($request);
-           $this->updateClubIncome($request);
-           $this->updateClub($request->member_id);
-
-           //When confirm, updated closed flag
-           $tblPaymentGateway->member_id = $request->member_id;
-           $tblPaymentGateway->closed =true;
-           $tblPaymentGateway->save();
-           DB::commit();
-           $response = ['status' => true, 'message' => 'Member Created Successfully'];
-           return response($response, 200);
-       } catch(Exception $ex) {
-           $response = ['status' => false, 'message' => $ex->getMessage()];
-           DB::rollBack();
-           return response($response, 200);
-       }
-
+       $response = $this->createMember($request, $tblTempMember, $tblPaymentGateway);
+       return response($response, 200);
     }
+
+    // public function updatePaymentStatus(Request $request){
+    //     //Validate Input
+    //     $validator = Validator::make($request->all(), [
+    //        'txn_id' => 'required|string|max:50',
+    //        'temp_id' => 'required|integer',
+    //        'payment_id' => 'required|string|max:50',
+    //        'status' => [
+    //            'required',
+    //            Rule::in(['SUCCESS', 'FAILURE', 'PENDING']),
+    //        ],
+    //    ]);
+
+    //    $msg = 'Member Created Successfully';
+    //    //General request validation
+    //    if ($validator->fails()) {
+    //        $errors = $validator->errors()->first();
+    //        return response()->json(['status' => false, 'message' => $errors]);
+    //    }
+
+    //    //Validate against TempMembers
+    //    $tblTempMember = TempMember::where('id',$request->temp_id)->first();
+
+    //    //If Temp ID doesnot exist
+    //    if($tblTempMember === null){
+    //        $response = ['status' => false, 'message' => 'Invalid Temp ID'];
+    //        return response($response, 200);
+    //    }
+    //    $request->password = $tblTempMember->password;
+    //    $request->name = $tblTempMember->first_name;
+    //    $request->member_fee = $tblTempMember->membership_fee;
+
+    //    //Validate against PaymentGateway table
+    //    $tblPaymentGateway = PaymentGateway::where('temp_id', $request->temp_id)
+    //                        ->where('order_id', $request->txn_id)->first();
+
+    //    if($tblPaymentGateway == null){
+    //        $response = ['status' => false, 'message' => 'Invalid txnid'];
+    //        return response($response, 200);
+    //    }
+
+    //    $request->payment_int_id = $tblPaymentGateway->id;
+
+    //    $pmtFlag = true;
+    //    switch($request->status){
+    //        case 'SUCCESS':
+    //            $tblPaymentGateway->payment_id = $request->payment_id;
+    //            $tblPaymentGateway->member_id = $request->member_id;
+    //            $tblPaymentGateway->paid = true;
+    //            $tblPaymentGateway->failure = false;
+    //            $tblPaymentGateway->pending = false;
+    //            $tblPaymentGateway->fake = false;
+    //            $tblPaymentGateway->closed =false;
+    //            $tblPaymentGateway->save();
+    //            break;
+    //        case 'FAILURE':
+    //            // $tblPaymentGateway->payment_id = $request->payment_id;
+    //            $tblPaymentGateway->paid = false;
+    //            $tblPaymentGateway->failure = true;
+    //            $tblPaymentGateway->pending = false;
+    //            $tblPaymentGateway->fake = false;
+    //            $tblPaymentGateway->closed =true;
+    //            $tblPaymentGateway->save();
+    //            $pmtFlag = false;
+    //            break;
+    //        default:
+    //            // $tblPaymentGateway->payment_id = $request->payment_id;
+    //            $tblPaymentGateway->paid = false;
+    //            $tblPaymentGateway->failure = false;
+    //            $tblPaymentGateway->pending = true;
+    //            $tblPaymentGateway->fake = false;
+    //            $tblPaymentGateway->closed =false;
+    //            $tblPaymentGateway->save();
+    //            $pmtFlag = false;
+    //            break;
+    //    }
+
+    //    if($pmtFlag == false){
+    //     return response()->json(['status' => false, 'message' => 'Unsuccessful Payment']);
+    //    }
+
+    //    DB::beginTransaction();
+    //    try{
+    //        //Inject default values
+    //        //$request->memberID = $request->user()->id;
+    //        $request->jumboErrorStatus = false;
+    //        $request->jumboErrorMessage = "";
+    //        $request->name = $tblTempMember->first_name.' '.$tblTempMember->last_name;
+    //        $request->mobile_no = $tblTempMember->mobile_no;
+    //        $request->parent_id = $tblTempMember->parent_id;
+
+    //        $this->populateParams();
+    //        $this->populateLevelMaster();
+    //        $this->populateClubMaster();
+    //        $this->createMemberUser($request);
+    //        $this->addMember($request);
+    //        $this->populateParents($request->parent_id);
+    //        $this->mapMember($request);
+
+    //        //Save Fee in Deposit
+    //        $tblMemberDeposits = new MemberDeposit();
+    //        $tblMemberDeposits->member_id = $request->member_id;
+    //        $tblMemberDeposits->gateway_id = $tblPaymentGateway->id;
+    //        $tblMemberDeposits->amount = $tblPaymentGateway->amount;
+    //        $tblMemberDeposits->tax_percent = $tblPaymentGateway->tax_percent;
+    //        $tblMemberDeposits->tax_amount = $tblPaymentGateway->tax_amount;
+    //        $tblMemberDeposits->net_amount = $tblPaymentGateway->net_amount;
+    //        $tblMemberDeposits->deposit_type = 'MEMBERSHIP_FEE';
+    //        $tblMemberDeposits->save();
+
+    //        $this->addMemberWallet($request->member_id);
+    //        $this->updateLevelIncomes($request);
+    //        $this->updateRewards($request);
+    //        $this->addRechargePoints($request);
+    //        $this->updateClubIncome($request);
+    //        $this->updateClub($request->member_id);
+
+    //        //When confirm, updated closed flag
+    //        $tblPaymentGateway->member_id = $request->member_id;
+    //        $tblPaymentGateway->closed =true;
+    //        $tblPaymentGateway->save();
+
+    //        $rp = new RazorPayX();
+    //        $razor_contact_id = $rp->createContact($request->member_name,$request->email,$request->mobile_no,$request->member_id);
+
+    //        if (strlen($razor_contact_id) == 0){
+    //            $msg = 'Success, Link Account Pending, Contact Admin';
+    //         // throw new Exception("Unable to create bank records");
+    //        } else {
+    //             $tblMemberRazor = Member::where('member_id', $request->member_id)->first();
+    //             $tblMemberRazor->razor_contact_id = $razor_contact_id;
+    //             $tblMemberRazor->save();
+    //        }
+
+
+    //        DB::commit();
+    //        $response = ['status' => true, 'message' => $msg];
+    //        return response($response, 200);
+    //    } catch(Exception $ex) {
+    //        $response = ['status' => false, 'message' => $ex->getMessage()];
+    //        DB::rollBack();
+    //        return response($response, 200);
+    //    }
+
+    // }
 
     public function getRefererName(Request $request){
         try{
@@ -372,118 +724,50 @@ class MemberAPIController extends Controller
 
     }
 
-    public function createTempUser(Request $request){
-        DB::beginTransaction();
-        try{
-            //Validate request
-            $validator = Validator::make($request->all(), [
-                'first_name' => 'required|string|max:50',
-                'last_name' => 'required|string|max:50',
-                'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-                'referal_code' => 'required|max:10|min:10',
-                "email" => "required|email",
-                "password" => "required|string|max:50",
-                "address" => "string|max:200",
-                // "otp" => "required|numeric|min:1000|max:9999",
-            ]);
+    public function isMemberFeePaid(Request $request){
+        $validator = Validator::make($request->all(), [
+            'temp_id' => 'required|numeric|digits_between:1,10'
+        ]);
 
-            // $txn_id = $this->newTxnID();
-            // $txn_id = createRazorpayTempOrder()
-            // dd($txn_id);
+        try{
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
-                $response = ['status' => false, 'message' => $errors];
-                return response($response, 200);
-                // return response()->json(['status' => false, 'message' => $errors],200);
-            }
-
-            $this->populateParams();
-
-            if ($this->ALLOW_NEW_MEMBERS == false){
-                $response = ['status' => false, 'message' => 'System Error! Please try again after sometime'];
+                $response = [
+                    'status' => false,
+                    'pmt_status' => false,
+                    'message' =>  $errors
+                ];
                 return response($response, 200);
             }
 
-
-            if ($request->referal_code == '0000000000'){
-                if ($this->ALLOW_COMPANY_REFERAL_CODE == false){
-                    $response = ['status' => false, 'message' => 'Company Referal Code has been prohibited'];
-                    return response($response, 200);
-                }
-            }
-            // $this->populateParams();
-
-            //Check if referal code is valid
-            // $tblReferal = Referal::where('referal_code', $request->referal_code)
-            //                 ->whereDate('expiry_at', '>=', Carbon::now()->toDateString())
-            //                 ->whereNull('temp_id')->first();
-
-            $tblReferal = Member::where('referal_code', $request->referal_code)->first();
-
-            if($tblReferal === null){
-                $response = ['status' => false, 'message' => 'Invalid Referal Code'];
+            $pmtGateway = PaymentGateway::where('temp_id',$request->temp_id)
+                                        ->where('payment_id', '<>', 'null')->first();
+            if($pmtGateway != null){
+                $response = [
+                    'status' => true,
+                    'pmt_status' => true,
+                    'message' => 'Payment Records exist for this user, Contact Admin'
+                ];
+                return response($response, 200);
+            } else {
+                $response = [
+                    'status' => true,
+                    'pmt_status' => false,
+                    'message' => 'Payment Records exist for this user, Contact Admin'
+                ];
                 return response($response, 200);
             }
-
-            //Check if there is an existing user with same mobile no
-            $tblMember = Member::where('mobile_no', $request->mobile_no)
-                        -> orWhere ('email', $request->email)->first();
-            if($tblMember){
-                $response = ['status' => false, 'message' => 'User with this mobile no or email already exists'];
-                return response($response, 200);
-            }
-
-            // $tblParam = Param::where('param', 'MEMBERSHIP_FEE')->first();
-
-            //Check if mobile no exists in TempMember if yes replace the record, else add
-            $tempUser = TempMember::where('mobile_no', $request->mobile_no)->first();
-            if(!$tempUser){
-                $tempUser = new TempMember();
-            }
-            $tempUser->first_name = $request->first_name;
-            $tempUser->last_name = $request->last_name;
-            $tempUser->mobile_no = $request->mobile_no;
-            $tempUser->referal_code = $request->referal_code;
-            $tempUser->email = $request->email;
-            $tempUser->password = Hash::make($request->password);
-            $tempUser->address = $request->address;
-            $tempUser->parent_id = $tblReferal->member_id;
-
-            $membershipFee = $this->MEMBERSHIP_FEE;
-            $taxPercent = $this->TAX_PERCENT;
-            $taxAmount = round($this->MEMBERSHIP_FEE * $this->TAX_PERCENT * 0.01,2);
-            $netAmount = $this->MEMBERSHIP_FEE + $taxAmount;
-
-            $tempUser->membership_fee = $membershipFee;
-            $tempUser->tax_percent = $taxPercent;
-            $tempUser->tax_amount = $taxAmount;
-            $tempUser->net_amount = $netAmount;
-
-            $tempUser->expiry_at = Carbon::now()->addDays(3);
-            $tempUser->ip = $request->ip();
-            $tempUser->save();
-
-            generateNewMemberOTP($request->mobile_no);
-
-            $orderid = "";
-            $orderid = createRazorpayTempOrder($tempUser->id, $membershipFee , $taxPercent);
-            if(strlen($orderid) == 0){
-                throw new Exception("Could not generate order id");
-            }
-            DB::commit();
-            $response = ['status' => true,
-            'temp_id' => $tempUser->id,
-            'txn_id' => $orderid,
-            'message' => 'Successfully Created Temporary User',
-            'fee_amount' => $netAmount * 100
-            ];
-            return response($response, 200);
         } catch(Exception $e) {
-            $response = ['status' => false, 'message' => $e->getMessage()];
-            DB::rollBack();
+            $response = [
+                'status' => false,
+                'pmt_status' => false,
+                'message' => 'Payment Records exist for this user, Contact Admin'
+            ];
             return response($response, 200);
         }
     }
+
+
 
 
     // Private methods Fillers ===============================================================
@@ -645,25 +929,28 @@ class MemberAPIController extends Controller
 
 
         $tblMember = new Member();
-        $tblMember -> temp_id = $request->temp_id;
-        $tblMember -> member_id = $request->member_id;
-        $tblMember -> parent_id = $request->parent_id;
-        $tblMember -> grand_parent_id = $tblParentMember->parent_id;
-        $tblMember -> unique_id = $this->newMemberCode();
-        $tblMember -> first_name = $tblTempMember->first_name;
-        $tblMember -> last_name = $tblTempMember->last_name;
-        $tblMember -> address = $tblTempMember->address;
-        $tblMember -> email = $tblTempMember->email;
-        $tblMember -> referal_code = getUniqueReferalCode();
-        $tblMember -> mobile_no = $request->mobile_no;
-        $tblMember -> recharge_points =0; // $this->MEMBERSHIP_POINTS;
-        $tblMember -> image = 'dummy.jpg';
-        $tblMember -> designation_id = 1;
-        $tblMember -> current_level = 0;
-        $tblMember -> joining_date = Carbon::now();
-        $tblMember -> save();
-        $request -> unique_id = $tblMember -> unique_id;
+        $tblMember->temp_id = $request->temp_id;
+        $tblMember->member_id = $request->member_id;
+        $tblMember->parent_id = $request->parent_id;
+        $tblMember->grand_parent_id = $tblParentMember->parent_id;
+        $tblMember->unique_id = $this->newMemberCode();
+        $tblMember->first_name = $tblTempMember->first_name;
+        $tblMember->last_name = $tblTempMember->last_name;
+        $tblMember->address = $tblTempMember->address;
+        $tblMember->email = $tblTempMember->email;
+        $tblMember->referal_code = getUniqueReferalCode();
+        $tblMember->mobile_no = $request->mobile_no;
+        $tblMember->recharge_points =0; // $this->MEMBERSHIP_POINTS;
+        $tblMember->image = 'dummy.jpg';
+        $tblMember->designation_id = 1;
+        $tblMember->current_level = 0;
+        $tblMember->joining_date = Carbon::now();
+        $tblMember->save();
+        $request->unique_id = $tblMember->unique_id;
+        $request->member_name = $tblTempMember->first_name.' '.$tblTempMember->last_name;
+        $request->email = $tblTempMember->email;
     }
+
 
     private function mapMember(Request $request){
         $tblMemberMap = MemberMap::where('member_id',$request->parent_id)

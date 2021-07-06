@@ -52,14 +52,14 @@
 				</li>
 
 				<li class="nav-item dropdown">
-					<a href="#" class="navbar-nav-link dropdown-toggle" data-toggle="dropdown">Menu</a>
+					<a href="#" class="navbar-nav-link dropdown-toggle" data-toggle="dropdown">Hot Links</a>
 
 					<div class="dropdown-menu">
-						<a href="#" class="dropdown-item">Action</a>
-						<a href="#" class="dropdown-item">Another action</a>
-						<a href="#" class="dropdown-item">One more action</a>
+						<a href="#" class="dropdown-item">Member Details</a>
+						<a href="#" class="dropdown-item">Payment Reconciliation</a>
+						<a href="#" class="dropdown-item">Feedback</a>
 						<div class="dropdown-divider"></div>
-						<a href="#" class="dropdown-item">Separate action</a>
+						<a href="#" class="dropdown-item">Payouts</a>
 					</div>
 				</li>
 			</ul>

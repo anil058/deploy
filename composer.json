@@ -18,7 +18,8 @@
         "laravel/passport": "^10.0",
         "laravel/tinker": "^2.5",
         "laravel/ui": "^3.0",
-        "razorpay/razorpay": "2.*"
+        "razorpay/razorpay": "2.*",
+        "yajra/laravel-datatables-oracle": "^9.18"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.5",

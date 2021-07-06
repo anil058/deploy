@@ -127,6 +127,27 @@ class CreateParamsTable extends Migration
             'long_text' => '',
             'bool_value' => true
         ));
+        DB::table('params')->insert(array(
+            'param' => 'PAYMENT_TRANSFER_PERCENT',
+            'string_value' => '',
+            'int_value' => 1,
+            'long_text' => '',
+            'bool_value' => true
+        ));
+        DB::table('params')->insert(array(
+            'param' => 'PAYMENT_ADMIN_DEDUCTION_PERCENT',
+            'string_value' => '',
+            'int_value' => 6,
+            'long_text' => '',
+            'bool_value' => true
+        ));
+        DB::table('params')->insert(array(
+            'param' => 'PAYMENT_TDS_PERCENT',
+            'string_value' => '',
+            'int_value' => 5,
+            'long_text' => '',
+            'bool_value' => true
+        ));
 
     }
 

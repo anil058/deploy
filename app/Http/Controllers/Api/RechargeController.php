@@ -28,6 +28,8 @@ class RechargeController extends Controller
     private $ALLOW_MOBILE_RECAHRGE;
     private $MOBILE_WELCOME_ADJUSTMENT_PERCENT;
     private $TEAM_CASHBACK_PERCENT;
+    private $MOBILE_RECHARGE_LIMIT;
+
     private $RECHARGE_URL = 'https://api.pay2all.in/v1/payment/recharge';
 
     private $arrayParents = array();
@@ -56,6 +58,9 @@ class RechargeController extends Controller
                 case "TEAM_CASHBACK_PERCENT":
                     $this->TEAM_CASHBACK_PERCENT = $refTable->int_value;
                     break;
+                case "MOBILE_RECHARGE_LIMIT":
+                    $this->MOBILE_RECHARGE_LIMIT = $refTable->int_value;
+                    break;
                 default :
                     $this->ROYALTY_REQ_NUM = 0;
             }
@@ -64,12 +69,13 @@ class RechargeController extends Controller
 
     private function populateParents($member_id){
         DB::enableQueryLog();
-        $tblMembers = MemberMap::join('members', 'member_maps.member_id', '=', 'members.member_id')
+        $tblMembers = MemberMap::join('members', 'member_maps.parent_id', '=', 'members.member_id')
         ->where('member_maps.member_id', $member_id)
         ->where('member_maps.level_ctr', '<=', 12)
         // ->where('member_maps.level_ctr', '>', 0)
         ->get(['members.*','member_maps.level_ctr']);
 
+        // DB::getQueryLog();
         foreach ($tblMembers as $refTable){
             $this->arrayParents[] = $refTable;
         }
@@ -361,8 +367,8 @@ class RechargeController extends Controller
 
         //Initialization Job
         $id = $request->user()->id;
-        $tblMember = Member::where('member_id', $id)->first();
-        $this->populateParents($tblMember->parent_id);
+        // $tblMember = Member::where('member_id', $id)->first();
+        $this->populateParents($id);
 
         $tblMemberWallet = MemberWallet::where('member_id', $id)->first();
         $l_WELCOME_AMT = $tblMemberWallet->welcome_amt;
@@ -372,8 +378,8 @@ class RechargeController extends Controller
         $l_CASHBACK_AMT = $l_AMOUNT * $this->RECHARGE_CASHBACK_PERCENT * 0.01;
 
         //Until Testing make sure no one recharges more than Rs 10
-        if($l_AMOUNT > 1000){
-            $response = ['status' => false, 'message' => 'Only upto Rs 1000 allowed in test mode'];
+        if($l_AMOUNT > $this->MOBILE_RECHARGE_LIMIT){
+            $response = ['status' => false, 'message' => 'Only upto Rs " . $this->MOBILE_RECHARGE_LIMIT . " allowed'];
             return response($response, 200);
         }
 

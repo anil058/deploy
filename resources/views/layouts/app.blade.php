@@ -24,6 +24,7 @@
 </head>
 <body>
 
+
     <!-- Main navbar -->
 	@include('partials.navtopbar')
     <!-- /main navbar -->

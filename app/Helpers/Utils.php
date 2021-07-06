@@ -247,8 +247,8 @@ function createPath($path) {
 
 function createRazorpayTempOrder($tmpid,$amount,$taxPercent){
     try{
-        $api_key = 'rzp_test_H4Hl4CW33loNwZ';
-        $api_secret ='Rq9k7LaMa6FHOgz4ujcryTBz';
+        $api_key = env('RAZOR_KEY','');;
+        $api_secret = env('RAZOR_SECRET');
 
         $taxAmount = round($amount * $taxPercent * 0.01,2);
         $netAmount = $amount + $taxAmount;
@@ -277,8 +277,10 @@ function createRazorpayTempOrder($tmpid,$amount,$taxPercent){
 
 function createRazorpayMoneyOrder($tmpid,$amount,$taxPercent){
     try{
-        $api_key = 'rzp_test_H4Hl4CW33loNwZ';
-        $api_secret ='Rq9k7LaMa6FHOgz4ujcryTBz';
+        // $api_key = 'rzp_test_H4Hl4CW33loNwZ';
+        // $api_secret ='Rq9k7LaMa6FHOgz4ujcryTBz';
+        $api_key = env('RAZOR_KEY','');;
+        $api_secret = env('RAZOR_SECRET');
 
         $receiptID = getUniqueTicketNo();
         $api = new Api($api_key, $api_secret);

@@ -23,6 +23,7 @@ class CreateMembersTable extends Migration
             $table->string('unique_id')->unique()->index();
             $table->string('first_name')->index();
             $table->string('last_name')->index();
+            $table->string('sex')->index()->nullable();
             $table->string('address')->index();
             $table->string('email')->unique();
             $table->string('referal_code')->unique();
@@ -49,7 +50,7 @@ class CreateMembersTable extends Migration
             $table->boolean('active')->default(0);
             $table->boolean('razor_active')->default(0);
             $table->string('razor_contact_id')->nullable()->unique()->index();
-            $table->string('razor_fund_id')->nullable()->unique()->index();
+            $table->bigInteger('razor_active_fund_id')->nullable()->unique()->unsigned();
             $table->timestamps();
             // $table->enum('user_status', array('Active', 'Deactive'))->default('Active');
         });

@@ -26,7 +26,7 @@ class ApiAuthController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api')->except(['register','login','generateOTP','validateOTP','forgotPassword','generateNewMemberOTP','validateLogin']);
+        $this->middleware('auth:api')->except(['systemPing', 'register','login','generateOTP','validateOTP','forgotPassword','generateNewMemberOTP','validateLogin']);
     }
 
     // public function register (Request $request) {
@@ -48,13 +48,19 @@ class ApiAuthController extends Controller
     //     return response($response, 200);
     // }
 
+    public function systemPing(Request $request){
+        $response = ['status' => true, 'message' => 'System under Maintenance, Sorry of inconvinience'];
+                return response($response, 200);
+
+    }
+
     public function validateLogin (Request $request) {
         try{
             $validator = Validator::make($request->all(), [
                 'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
                 'password' => 'required|string|min:6'
             ]);
-    
+
             if ($validator->fails())
             {
                 $error = $validator->errors()->first();
@@ -67,7 +73,7 @@ class ApiAuthController extends Controller
                 if (Hash::check($request->password, $user->password)) {
                     // $tblMember = Member::where('member_id', $user->id)->first();
                     $response = [
-                        'status' => true, 
+                        'status' => true,
                         'message' => 'Successful login'
                     ];
                     return response($response, 200);
@@ -94,7 +100,7 @@ class ApiAuthController extends Controller
                 'password' => 'required|string|min:6',
                 'otp' => 'required|digits:4',
             ]);
-    
+
             if ($validator->fails())
             {
                 $error = $validator->errors()->first();
@@ -102,7 +108,7 @@ class ApiAuthController extends Controller
                 return response($response, 200);
                 // return response(['errors' => $error], 422);
             }
-            
+
             //Test Code *************************************
             // try{
             //     $tblOTP = Otp::Where('mobile_no', $request->mobile_no)->first();
@@ -119,17 +125,17 @@ class ApiAuthController extends Controller
                 $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
                 return response($response, 200);
             }
-    
+
             if($tblOTP->otp != $request->otp){
                 $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
                 return response($response, 200);
             }
-    
+
             if($tblOTP->expiry_at < Carbon::now()) {
                 $response = ['status' => false, 'message' => 'Expired or Invalid OTP'];
                 return response($response, 200);
             }
-    
+
 
 
             $user = MemberUser::where('mobile_no', $request->mobile_no)->first();
@@ -137,34 +143,34 @@ class ApiAuthController extends Controller
                 if (Hash::check($request->password, $user->password)) {
                     $tblMember = Member::where('member_id', $user->id)->first();
                     $tblDesignation = ClubMaster::find($tblMember->designation_id);
-    
+
                     $token=Str::random(80);
                     // $token = $user->createToken('Laravel Password Grant Client')->accessToken;
                     $user->api_token = $token;
                     $user->save();
-    
+
                     $image_path = public_path("/member_images/dummy.jpg");
                     $path = public_path("/member_images/") . $tblMember->unique_id;
                     if(file_exists($path)){
                         $files = array_diff(scandir($path), array('.', '..'));
                         $image_path = '';
-    
+
                         foreach($files as $file) {
                             if (strpos( $file,"profile_img.") !== false){
                                 $image_path = $path.'/'.$file;
                             }
                         }
-    
+
                         // if (strlen($image_path) == 0){
                         //     $image_path = public_path("/member_images/dummy.jpg");
                         // }
                     }
-                   
+
 
                     $imagedata = file_get_contents($image_path);
                     $profile_img = base64_encode($imagedata);
-           
-                    
+
+
                     // $path = public_path("/member_images/") . $tblMember->unique_id;
                     // if (file_exists($path) == false){
                     //     $path = public_path("/member_images/dummy.jpg");
@@ -173,13 +179,13 @@ class ApiAuthController extends Controller
 
                     // $imagedata = file_get_contents($path);
                     // $base64 = base64_encode($imagedata);
-    
+
                     $response = [
-                        'status' => true, 
+                        'status' => true,
                         'message' => 'Successful login',
-                        'token' => $token, 
-                        'name' => $tblMember->first_name, 
-                        'designation' => $tblDesignation->designation, 
+                        'token' => $token,
+                        'name' => $tblMember->first_name,
+                        'designation' => $tblDesignation->designation,
                         'image' => $profile_img,
                         'unique_id' => $tblMember->unique_id,
                         'referal_code' => $tblMember->referal_code
@@ -245,7 +251,7 @@ class ApiAuthController extends Controller
         {
             return response(["status" => false, "message" => $validator->errors()->all()], 200);
         }
-        
+
         $tblOTP = Otp::Where('mobile_no', $request->mobile_no)->first();
         if($tblOTP === null) {
             $response = ["status" => false, "message" => "Invalid otp"];
@@ -296,7 +302,7 @@ class ApiAuthController extends Controller
             }
             $response = ['status' => false, 'message' => 'Could not Generate OTP'];
             return response($response, 200);
-          
+
         } catch(\Exception $e){
             $response = ['status' => false, 'message' => $e->getMessage()];
             return response($response, 200);
@@ -329,7 +335,7 @@ class ApiAuthController extends Controller
             }
             $response = ['status' => false, 'message' => 'Could not Generate OTP'];
             return response($response, 200);
-          
+
         } catch(\Exception $e){
             $response = ['status' => false, 'message' => $e->getMessage()];
             return response($response, 200);
@@ -342,7 +348,7 @@ class ApiAuthController extends Controller
                 'mobile_no' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
                 "otp" => "required|numeric|min:1000|max:9999",
             ]);
-    
+
             if ($validator->fails()) {
                 $errors = $validator->errors()->first();
                 $response = ['status' => false, 'message' => $errors];
@@ -359,7 +365,7 @@ class ApiAuthController extends Controller
                 $response = ['status' => false, 'message' => 'Invalid Mobile or OTP'];
                 return response($response, 200);
             }
-    
+
             $curTime = Carbon::now();
             if($tblOTP->expiry_at < Carbon::now()) {
                 $response = ['status' => false, 'message' => 'Invalid Mobile or OTP'];
@@ -379,5 +385,5 @@ class ApiAuthController extends Controller
             return response($response, 200);
         }
     }
-    
+
 }

@@ -16,17 +16,12 @@ class CreatePayoutRequestsTable extends Migration
         Schema::create('payout_requests', function (Blueprint $table) {
             $table->id('id');
             $table->foreignId('member_id')->references('id')->on('members')->onDelete('cascade')->unsigned()->index();
+            $table->string('reference_id')->nullable();
+            $table->bigInteger('fund_id')->index();
+            $table->string('payout_id')->unique()->index();
             $table->double('request_amount')->unique();
-            $table->double('payment_amount')->unique();
-            $table->string('status')->default('PENDING')->index();
-            $table->bigInteger('approver_id')->nullable();
-            $table->dateTime('approved_on')->nullable();
-            $table->string('bank_name')->nullable();
-            $table->string('ifsc_code')->nullable();
-            $table->string('account_number')->nullable();
-            $table->string('razor_contact_id')->nullable();
-            $table->string('razor_fund_id')->nullable();
-            $table->string('payout_id')->nullable();
+            $table->string('status')->nullable(); //Paid,Pending,Rejected
+            $table->string('remarks')->nullable();
             $table->timestamps();
         });
     }

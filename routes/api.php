@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Auth\ApiAuthController;
 use App\Http\Controllers\Api\UserImageController;
 use App\Http\Controllers\Api\RedeemController;
+use App\Http\Controllers\Api\WebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +49,7 @@ Route::group(['middleware' => ['cors', 'json.response', 'api.key']], function ()
     Route::post('/updatememberinfo', [MemberAPIController::class, 'updateMemberInfo']);
     Route::post('/saveuserimage', [UserImageController::class,'saveUserImage']);
     Route::post('/getmemberinfo', [MemberAPIController::class,'getMemberInfo']);
+    Route::post('/ismemberfeepaid', [MemberAPIController::class,'isMemberFeePaid']);
 
     Route::post('/showuser', [MemberAPIController::class,'showUser']);
     Route::post('/changepassword', [ApiAuthController::class,'changePassword']);
@@ -64,6 +66,7 @@ Route::get('/testapi', [MemberAPIController::class,'showUser']);
 Route::get('/userimage', [UserImageController::class,'userImage']);
 Route::post('/getmemberdocuments', [UserImageController::class,'getMemberDocuments']);
 
+Route::post('/ping', [ApiAuthController::class,'systemPing']);
 Route::post('/forgotpassword', [ApiAuthController::class,'forgotPassword']);
 Route::post('/generateotp', [ApiAuthController::class,'generateOTP'])->middleware('api.key');
 Route::post('/generatenewmemberotp', [ApiAuthController::class,'generateNewMemberOTP']);
@@ -119,7 +122,10 @@ Route::post('/getfundtransferswithname', [TranApiController::class,'getFundTrans
 
 //Redeem
 Route::post('/reimbursments', [RedeemController::class,'GetRedeemes'])->middleware('api.key');
-Route::post('/requestredeem', [RedeemController::class,'RequestRedeem'])->middleware('api.key');;
+Route::post('/requestredeem', [RedeemController::class,'RequestRedeem'])->middleware('api.key');
+
+//Webhook
+Route::post('/razorhooks', [WebhookController::class,'HandleWebhook']);
 
 
 
