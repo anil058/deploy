@@ -79,7 +79,7 @@
                     </div>
                     <!--//logo-->
                     <div class="w3layouts-login1">
-                        <a href="/privacypolicy">Contact us </a>
+                        <a href="/contactus">Contact us </a>
                     </div>
                     <div class="w3layouts-login1">
                         <a href="/terms">Terms and Conditions |</a>
