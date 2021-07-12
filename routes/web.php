@@ -22,6 +22,9 @@ Route::get('/privacypolicy', function () {
 Route::get('/terms', function () {
     return view('terms');
 });
+Route::get('/contactus', function () {
+    return view('contact-us');
+});
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 // Route::get('/privacy-policy', [App\Http\Controllers\HomeController::class, 'privacyPolicy'])->name('privacy-policy');

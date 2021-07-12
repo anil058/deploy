@@ -101,7 +101,7 @@ h6 {
 
 /*--header--*/
 header {
-    background-color: rgba(0, 0, 0, 0.52);
+    background-color: rgba(133, 136, 145, 0.52);
     padding: 1em 0;
     position: absolute;
     top: 0;
@@ -268,7 +268,9 @@ ul.callbacks_tabs.callbacks1_tabs {
 }
 
 .banner1 {
-    background: url(../images/5.jpg) no-repeat;
+    background: url(../images/6.jpg) no-repeat;
+    filter: alpha(opacity=40);
+    backdrop-filter: blur(25px);
     width: 100%;
     min-height: 700px;
     background-size: cover;
@@ -278,7 +280,7 @@ ul.callbacks_tabs.callbacks1_tabs {
 }
 
 .banner2 {
-    background: url(../images/4.jpg) no-repeat;
+    background: url(../images/7.jpg) no-repeat;
     width: 100%;
     min-height: 700px;
     background-size: cover;
@@ -288,7 +290,7 @@ ul.callbacks_tabs.callbacks1_tabs {
 }
 
 .banner3 {
-    background: url(../images/5.jpg) no-repeat;
+    background: url(../images/8.jpg) no-repeat;
     width: 100%;
     min-height: 700px;
     background-size: cover;
@@ -298,7 +300,7 @@ ul.callbacks_tabs.callbacks1_tabs {
 }
 
 .banner4 {
-    background: url(../images/1.jpg) no-repeat;
+    background: url(../images/9.jpg) no-repeat;
     width: 100%;
     min-height: 700px;
     background-size: cover;
@@ -6871,8 +6873,8 @@ abbr[data-original-title] {
 
 .HeadCSS {
     font-family: 'Anton';
-    font-size: 22px;
-    color: #ec4c0e;
-    font-size: 2rem;
+    font-size: 44px;
+    color: #e0dddb;
+    font-size: 3rem;
     letter-spacing: 2px;
 }

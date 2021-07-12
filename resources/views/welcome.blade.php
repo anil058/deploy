@@ -61,21 +61,26 @@
 
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <header>
-                <div class="container">
+                <div class="container-fluid" style="height: 400px">
                     <!--logo-->
+                    <img src="images/mansha-newlogo.png" width="100" height="100" alt=" " class="img-responsive" style=" position: relative; left:100px; "/>
+
                     <div class="logo" id="myModalLabel">
                         <h1><a href="/home"> <span class="HeadCSS"> MANSHAA REAL</span></a></h1>
                     </div>
                     <!--//logo-->
                     <div class="w3layouts-login1">
-                        <a href="/terms">Terms and Conditions</a>
+                        <a href="/privacypolicy">Contact us </a>
                     </div>
                     <div class="w3layouts-login1">
-                        <a href="/privacypolicy">Privacy Policy</a>
+                        <a href="/terms">Terms and Conditions |</a>
+                    </div>
+                    <div class="w3layouts-login1">
+                        <a href="/privacypolicy">Privacy Policy |</a>
                     </div>
 
                     <div class="w3layouts-login">
-                        <a href="{{ route('login') }}" class="text-sm text-gray-700 underline">Login</a>
+                        <a href="{{ route('login') }}" class="text-sm text-gray-700 underline">Login |</a>
                         {{-- <a data-toggle="modal" data-target="#myModal" href="#"><i class="glyphicon glyphicon-user">
                             </i>Login</a> --}}
                     </div>
@@ -230,7 +235,7 @@
                                 <li>
                                     <div class="banner1">
                                         <div class="caption">
-                                            <h3><span>Be your </span> own boss</h3>
+                                            <h3><span style="color: black">Be your own boss</h3>
                                             <p><a href="#"><i class="fa fa-phone"></i> 9546291136</a></p>
                                         </div>
                                     </div>
@@ -651,7 +656,7 @@
                         <img src="images/telecalling1.png" alt=" " class="img-responsive" />
                     </div>
                     <div class="col-md-7 w3_agile_support_right">
-                        <h5>Mansha Real Rupees</h5>
+                        <h5>Manshaa Real</h5>
                         <h3>24/7 Customer Service Support</h3>
                         <p>Our dedicated team is ready to assist you 24 x 7. Just call us if you have any queries
                             regarding our services. </p>
@@ -685,7 +690,7 @@
             <!--//offers-->
 
             <!-- subscribe -->
-            <div class="w3-subscribe agileits-w3layouts">
+            {{-- <div class="w3-subscribe agileits-w3layouts">
                 <div class="container">
                     <div class="col-md-6 social-icons w3-agile-icons">
                         <h4>Join Us</h4>
@@ -707,7 +712,7 @@
                     </div>
                     <div class="clearfix"> </div>
                 </div>
-            </div>
+            </div> --}}
             <!-- //subscribe -->
 
             <!--footer-->
@@ -715,24 +720,23 @@
                 <div class="container-fluid">
                     <div class="w3-agile-footer-top-at">
                         <div class="col-md-2 agileits-amet-sed">
-                            <h4>Company</h4>
+                            <h4>Mansha Real</h4>
                             <ul class="w3ls-nav-bottom">
                                 <li><a href="about.html">About Us</a></li>
                                 <li><a href="#l">Support</a></li>
                                 <li><a href="#">Sitemap</a></li>
                                 <li><a href="#">Terms & Conditions</a></li>
                                 <li><a href="#">Faq</a></li>
-                                <li><a href="index.html#mobileappagileits">Mobile</a></li>
+                                {{-- <li><a href="index.html#mobileappagileits">Mobile</a></li> --}}
                                 <li><a href="#">Feedback</a></li>
                                 <li><a href="#">Contact</a></li>
-                                <li><a href="#">Shortcodes</a></li>
-                                <li><a href="#">Icons Page</a></li>
-
+                                {{-- <li><a href="#">Shortcodes</a></li>
+                                <li><a href="#">Icons Page</a></li> --}}
                             </ul>
                         </div>
                         <div class="col-md-3 agileits-amet-sed ">
                             <h4>Mobile Recharges</h4>
-                            <ul class="w3ls-nav-bottom">
+                            {{-- <ul class="w3ls-nav-bottom">
                                 <li><a href="index.html#parentVerticalTab1">Airtel</a></li>
                                 <li><a href="index.html#parentVerticalTab1">Aircel</a></li>
                                 <li><a href="index.html#parentVerticalTab1">Vodafone</a></li>
@@ -743,11 +747,11 @@
                                 <li><a href="index.html#parentVerticalTab1">Telenor</a></li>
                                 <li><a href="index.html#parentVerticalTab1">MTS</a></li>
                                 <li><a href="index.html#parentVerticalTab1">Jio</a></li>
-                            </ul>
+                            </ul> --}}
                         </div>
                         <div class="col-md-3 agileits-amet-sed ">
                             <h4>DATACARD RECHARGES</h4>
-                            <ul class="w3ls-nav-bottom">
+                            {{-- <ul class="w3ls-nav-bottom">
                                 <li><a href="index.html#parentVerticalTab3">Tata Photon</a></li>
                                 <li><a href="index.html#parentVerticalTab3">MTS MBlaze</a></li>
                                 <li><a href="index.html#parentVerticalTab3">MTS MBrowse</a></li>
@@ -759,18 +763,18 @@
                                 <li><a href="index.html#parentVerticalTab3">Idea</a></li>
                                 <li><a href="index.html#parentVerticalTab3">MTNL Mumbai</a></li>
                                 <li><a href="index.html#parentVerticalTab3">Tata Photon Whiz</a></li>
-                            </ul>
+                            </ul> --}}
                         </div>
                         <div class="col-md-2 agileits-amet-sed">
                             <h4>DTH Recharges</h4>
-                            <ul class="w3ls-nav-bottom">
+                            {{-- <ul class="w3ls-nav-bottom">
                                 <li><a href="index.html#parentVerticalTab2"> Airtel Digital TV Recharges</a></li>
                                 <li><a href="index.html#parentVerticalTab2">Dish TV Recharges</a></li>
                                 <li><a href="index.html#parentVerticalTab2">Tata Sky Recharges</a></li>
                                 <li><a href="index.html#parentVerticalTab2">Reliance Digital TV Recharges</a></li>
                                 <li><a href="index.html#parentVerticalTab2">Sun Direct Recharges</a></li>
                                 <li><a href="index.html#parentVerticalTab2">Videocon D2H Recharges</a></li>
-                            </ul>
+                            </ul> --}}
                         </div>
                         <div class="col-md-2 agileits-amet-sed ">
                             <h4>Payment Options</h4>
